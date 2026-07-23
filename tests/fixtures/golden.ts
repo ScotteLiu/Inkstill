@@ -1,0 +1,53 @@
+import { UTF8_BOM } from '../../src/main/documents/filePrimitives';
+
+export const goldenLines = [
+  '---',
+  'title: "Golden：中文 🧪"',
+  'aliases: ["e\u0301", "\u00e9"]',
+  'draft: false',
+  '---',
+  '',
+  '# 標題 👨‍👩‍👧‍👦 👍🏽 ❤️',
+  '',
+  'Unicode：中文，かな、한글；decomposed=e\u0301；precomposed=\u00e9；NBSP=A\u00a0B。',
+  '',
+  'CommonMark：*斜體*、**粗體**、~~刪除~~、`a  b`、foo_bar_baz、\\*literal\\*。',
+  '[巢狀括號](https://example.test/a_(b)?q=%E4%B8%AD "標題")。',
+  '',
+  '- [x] done',
+  '- [ ] todo',
+  '',
+  '| 左欄 | right |',
+  '| :--- | ----: |',
+  '| a \\| b | 😀 |',
+  '',
+  '````js meta="</script>"',
+  'const fence = "```";',
+  'const cjk = "中文";',
+  '````',
+  '',
+  '```mermaid',
+  'graph TD',
+  '  A["中文 🧪"] --> B{OK?}',
+  '```',
+  '',
+  '<div data-note="a&b" onclick="window.__bad=1">',
+  '  <script>window.__bad = 2</script>',
+  '</div>',
+  '',
+  '<custom-widget foo="bar">保留我</custom-widget>',
+  '',
+  '**粗體未閉合',
+  '',
+  '[連結未閉合](https://example.test/path',
+  '',
+  '```python',
+  'print("unterminated 中文")',
+];
+
+export function makeGoldenBytes(): Buffer {
+  return Buffer.concat([
+    UTF8_BOM,
+    Buffer.from(goldenLines.join('\r\n'), 'utf8'),
+  ]);
+}

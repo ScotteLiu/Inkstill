@@ -1,0 +1,83 @@
+{
+  "name": "markdown-editor",
+  "productName": "Inkstill",
+  "version": "1.1.0",
+  "description": "A calm, local-first Markdown workspace for Windows.",
+  "author": "Scotte Liu",
+  "license": "MIT",
+  "homepage": "https://github.com/ScotteLiu/Inkstill#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ScotteLiu/Inkstill.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ScotteLiu/Inkstill/issues"
+  },
+  "main": ".vite/build/main.js",
+  "private": true,
+  "packageManager": "pnpm@11.9.0",
+  "engines": {
+    "node": ">=24.14.0 <25"
+  },
+  "scripts": {
+    "start": "electron-forge start",
+    "clean:release": "node scripts/clean-release.mjs",
+    "release:metadata": "node scripts/generate-release-metadata.mjs",
+    "package": "pnpm release:metadata && electron-forge package",
+    "make": "pnpm release:metadata && electron-forge make",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "test:visual": "node scripts/capture-ui.mjs",
+    "test:installer": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/installer-smoke.ps1",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "verify:supply-chain": "pnpm audit --audit-level low && pnpm audit signatures",
+    "gate:candidate": "node scripts/release-gate.mjs --require-installer",
+    "gate:public": "node scripts/release-gate.mjs --require-installer --require-signature",
+    "verify:source": "pnpm typecheck && pnpm test && pnpm verify:supply-chain",
+    "verify": "pnpm verify:source && pnpm package && pnpm test:e2e",
+    "release:candidate": "pnpm clean:release && pnpm install --frozen-lockfile && pnpm verify:source && pnpm make && pnpm test:e2e && pnpm gate:candidate",
+    "release:public": "pnpm release:candidate && pnpm gate:public && pnpm test:installer -DisposableEnvironment -RequireSignature"
+  },
+  "dependencies": {
+    "@codemirror/autocomplete": "^6.20.3",
+    "@codemirror/commands": "6.10.4",
+    "@codemirror/lang-markdown": "6.5.0",
+    "@codemirror/language": "6.12.4",
+    "@codemirror/search": "6.7.1",
+    "@codemirror/state": "6.7.1",
+    "@codemirror/view": "6.43.6",
+    "@lezer/common": "1.5.2",
+    "@lezer/highlight": "1.2.3",
+    "@lezer/markdown": "1.7.1",
+    "chokidar": "5.0.0",
+    "dompurify": "^3.4.12",
+    "katex": "^0.18.1",
+    "marked": "^18.0.7",
+    "mermaid": "^11.16.0",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@electron-forge/cli": "7.11.2",
+    "@electron-forge/maker-squirrel": "7.11.2",
+    "@electron-forge/maker-zip": "7.11.2",
+    "@electron-forge/plugin-fuses": "7.11.2",
+    "@electron-forge/plugin-vite": "7.11.2",
+    "@electron/fuses": "2.1.3",
+    "@playwright/test": "1.61.1",
+    "@types/node": "26.1.1",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.0.3",
+    "electron": "43.1.0",
+    "jsdom": "29.1.1",
+    "typescript": "7.0.2",
+    "vite": "8.1.4",
+    "vitest": "4.1.10"
+  },
+  "config": {
+    "forge": "./forge.config.ts"
+  }
+}

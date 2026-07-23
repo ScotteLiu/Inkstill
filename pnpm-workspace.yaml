@@ -1,0 +1,21 @@
+packages:
+  - .
+
+nodeLinker: hoisted
+blockExoticSubdeps: true
+
+overrides:
+  "@electron/node-gyp": 10.2.0-electron.1
+  "fast-uri@>=3.0.0 <3.1.4": 3.1.4
+  "tar@<7.5.19": 7.5.19
+  "tmp@<0.2.7": 0.2.7
+
+allowBuilds:
+  electron: true
+  electron-winstaller: true
+
+# Forge 7 declares the v1 peer range, but fuses 2 keeps the same runtime API
+# and is required to recognize Electron 43's WasmTrapHandlers fuse.
+peerDependencyRules:
+  allowedVersions:
+    "@electron/fuses": 2.1.3
