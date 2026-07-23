@@ -12,7 +12,9 @@
 </p>
 
 <p align="center">
-  <a href="README.md">English</a> · <a href="README.zh-CN.md">简体中文</a>
+  <a href="README.md">English</a> · <a href="README.zh-CN.md">简体中文</a> ·
+  <a href="https://scotteliu.github.io/Inkstill/zh-tw.html">繁體中文</a> ·
+  <a href="https://scotteliu.github.io/Inkstill/">Multilingual website</a>
 </p>
 
 <p align="center">
@@ -26,7 +28,7 @@
   <a href="https://github.com/ScotteLiu/Inkstill/releases/download/v1.1.2-preview.1/Inkstill-1.1.2.Setup.exe"><img src="https://img.shields.io/badge/Download-Windows_x64-1f6f5f?style=for-the-badge&logo=windows" alt="Download Inkstill for Windows"></a>
 </p>
 
-![Inkstill split editor and rendered Markdown preview](docs/images/inkstill-split-preview.png)
+![Inkstill — write quietly and keep your files yours](docs/images/inkstill-social-preview.png)
 
 ## A writing space that stays out of your way
 
@@ -39,6 +41,8 @@ notes into a navigable workspace.
 | Edit, Split, and Read views with focus and typewriter modes. | Outline, full-text search, Wiki links, backlinks, and unlinked mentions. | Standard Markdown on disk, portable image paths, no required cloud account. |
 
 ## See it in action
+
+![Inkstill split editor and rendered Markdown preview](docs/images/inkstill-split-preview.png)
 
 <table>
   <tr>

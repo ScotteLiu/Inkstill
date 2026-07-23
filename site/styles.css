@@ -36,6 +36,7 @@ a {
 
 img {
   display: block;
+  height: auto;
   max-width: 100%;
 }
 
@@ -263,27 +264,55 @@ h1 {
 
 .product-frame {
   position: relative;
-  margin-top: 70px;
-  padding: 10px;
-  border: 1px solid var(--line);
-  border-radius: 22px;
-  background: rgba(255, 253, 248, 0.67);
-  box-shadow: var(--shadow);
+  isolation: isolate;
+  margin-top: 82px;
+  padding: 48px 12px 12px;
+  border: 1px solid rgba(23, 53, 47, 0.2);
+  border-radius: 28px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(231, 235, 228, 0.92)),
+    var(--paper);
+  box-shadow:
+    0 2px 0 rgba(255, 255, 255, 0.9) inset,
+    0 28px 56px rgba(24, 55, 48, 0.17),
+    0 72px 130px rgba(24, 55, 48, 0.14);
+  transform: perspective(1500px) rotateX(1.7deg) translateY(-4px);
+  transform-origin: center bottom;
 }
 
 .product-frame::before {
   content: "";
   position: absolute;
   z-index: -1;
-  inset: 8% 13% -9%;
-  border-radius: 50%;
-  background: rgba(31, 111, 95, 0.24);
-  filter: blur(80px);
+  inset: 13% 9% -12%;
+  border-radius: 44%;
+  background:
+    radial-gradient(circle at 28% 55%, rgba(31, 111, 95, 0.34), transparent 43%),
+    radial-gradient(circle at 74% 45%, rgba(207, 171, 108, 0.28), transparent 46%);
+  filter: blur(70px);
+}
+
+.product-frame::after,
+.showcase-image::before {
+  content: "";
+  position: absolute;
+  top: 19px;
+  left: 20px;
+  width: 48px;
+  height: 10px;
+  background:
+    radial-gradient(circle at 5px 5px, #d47967 0 4px, transparent 4.5px),
+    radial-gradient(circle at 24px 5px, #d5ad61 0 4px, transparent 4.5px),
+    radial-gradient(circle at 43px 5px, #57977d 0 4px, transparent 4.5px);
 }
 
 .product-frame img {
   width: 100%;
-  border-radius: 14px;
+  border: 1px solid rgba(23, 53, 47, 0.16);
+  border-radius: 17px;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 12px 32px rgba(24, 55, 48, 0.13);
 }
 
 section {
@@ -401,15 +430,60 @@ html:lang(hi) h2 {
 }
 
 .showcase-image {
-  padding: 8px;
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  background: var(--paper);
-  box-shadow: 0 20px 55px rgba(24, 55, 48, 0.12);
+  position: relative;
+  isolation: isolate;
+  padding: 43px 9px 9px;
+  border: 1px solid rgba(23, 53, 47, 0.19);
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(232, 235, 229, 0.94)),
+    var(--paper);
+  box-shadow:
+    0 2px 0 rgba(255, 255, 255, 0.92) inset,
+    0 24px 50px rgba(24, 55, 48, 0.15),
+    0 58px 100px rgba(24, 55, 48, 0.11);
+  transform: perspective(1200px) rotateY(1.4deg) rotateZ(-0.65deg) translateY(-5px);
+  transition: transform 220ms ease, box-shadow 220ms ease;
+}
+
+.showcase.reverse .showcase-image {
+  transform: perspective(1200px) rotateY(-1.4deg) rotateZ(0.65deg) translateY(-5px);
+}
+
+.showcase-image::before {
+  top: 17px;
+  left: 18px;
+}
+
+.showcase-image::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 8% -5% -8%;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 22% 35%, rgba(31, 111, 95, 0.26), transparent 48%),
+    radial-gradient(circle at 78% 65%, rgba(207, 171, 108, 0.22), transparent 48%);
+  filter: blur(36px);
+}
+
+.showcase-image:hover {
+  box-shadow:
+    0 2px 0 rgba(255, 255, 255, 0.92) inset,
+    0 30px 58px rgba(24, 55, 48, 0.18),
+    0 68px 110px rgba(24, 55, 48, 0.13);
+  transform: perspective(1200px) rotateY(0.4deg) rotateZ(-0.2deg) translateY(-9px);
+}
+
+.showcase.reverse .showcase-image:hover {
+  transform: perspective(1200px) rotateY(-0.4deg) rotateZ(0.2deg) translateY(-9px);
 }
 
 .showcase-image img {
-  border-radius: 11px;
+  width: 100%;
+  border: 1px solid rgba(23, 53, 47, 0.15);
+  border-radius: 15px;
+  box-shadow: 0 10px 26px rgba(24, 55, 48, 0.12);
 }
 
 .quiet-section {
@@ -561,12 +635,34 @@ footer {
 
   .product-frame {
     margin-top: 48px;
-    padding: 5px;
-    border-radius: 15px;
+    padding: 34px 6px 6px;
+    border-radius: 19px;
+    transform: none;
+  }
+
+  .product-frame::after,
+  .showcase-image::before {
+    top: 12px;
+    left: 13px;
+    transform: scale(0.78);
+    transform-origin: left center;
   }
 
   .product-frame img {
-    border-radius: 10px;
+    border-radius: 12px;
+  }
+
+  .showcase-image,
+  .showcase.reverse .showcase-image,
+  .showcase-image:hover,
+  .showcase.reverse .showcase-image:hover {
+    padding: 33px 6px 6px;
+    border-radius: 18px;
+    transform: none;
+  }
+
+  .showcase-image img {
+    border-radius: 11px;
   }
 
   section {
