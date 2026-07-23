@@ -21,7 +21,7 @@ const locales = [
     file: 'es.html', lang: 'es', locale: 'es_ES', current: 'Español',
     title: 'Inkstill — Editor Markdown de código abierto para Windows, macOS y Linux',
     description: 'Un editor Markdown tranquilo y de código abierto con vista previa, búsqueda, backlinks, Mermaid, KaTeX y exportación PDF.',
-    nav: 'Funciones', choose: 'Elegir idioma', download: 'Descargar',
+    nav: 'Funciones', choose: 'Elegir idioma', download: 'Descargar', skip: 'Saltar al contenido principal',
     eyebrow: 'Markdown de código abierto para escritorio', heading: 'Una forma más tranquila de escribir Markdown.',
     intro: 'Escritura cuidada, notas conectadas y una vista previa potente, todo sobre archivos normales de tu ordenador.',
     installer: 'Descargar instalador', portable: 'ZIP portátil', source: 'Ver código',
@@ -41,7 +41,7 @@ const locales = [
     file: 'pt-br.html', lang: 'pt-BR', locale: 'pt_BR', current: 'Português',
     title: 'Inkstill — Editor Markdown de código aberto para Windows, macOS e Linux',
     description: 'Um editor Markdown tranquilo e de código aberto com visualização, busca, backlinks, Mermaid, KaTeX e exportação em PDF.',
-    nav: 'Recursos', choose: 'Escolher idioma', download: 'Baixar',
+    nav: 'Recursos', choose: 'Escolher idioma', download: 'Baixar', skip: 'Ir para o conteúdo principal',
     eyebrow: 'Markdown de código aberto para desktop', heading: 'Uma forma mais tranquila de escrever Markdown.',
     intro: 'Escrita agradável, notas conectadas e uma visualização poderosa em arquivos comuns do seu computador.',
     installer: 'Baixar instalador', portable: 'ZIP portátil', source: 'Ver código',
@@ -61,7 +61,7 @@ const locales = [
     file: 'hi.html', lang: 'hi', locale: 'hi_IN', current: 'हिन्दी',
     title: 'Inkstill — Windows, macOS और Linux के लिए ओपन-सोर्स Markdown एडिटर',
     description: 'लाइव प्रीव्यू, खोज, बैकलिंक, Mermaid, KaTeX और PDF एक्सपोर्ट वाला शांत, ओपन-सोर्स Markdown एडिटर।',
-    nav: 'विशेषताएँ', choose: 'भाषा चुनें', download: 'डाउनलोड',
+    nav: 'विशेषताएँ', choose: 'भाषा चुनें', download: 'डाउनलोड', skip: 'मुख्य सामग्री पर जाएँ',
     eyebrow: 'डेस्कटॉप के लिए ओपन-सोर्स Markdown', heading: 'Markdown लिखने का अधिक शांत तरीका।',
     intro: 'सुंदर लेखन, जुड़े हुए नोट्स और शक्तिशाली प्रीव्यू—आपके कंप्यूटर की सामान्य फ़ाइलों में।',
     installer: 'इंस्टॉलर डाउनलोड करें', portable: 'पोर्टेबल ZIP', source: 'सोर्स देखें',
@@ -81,7 +81,7 @@ const locales = [
     file: 'ru.html', lang: 'ru', locale: 'ru_RU', current: 'Русский',
     title: 'Inkstill — Markdown-редактор с открытым исходным кодом для Windows, macOS и Linux',
     description: 'Спокойный Markdown-редактор с предпросмотром, поиском, обратными ссылками, Mermaid, KaTeX и экспортом PDF.',
-    nav: 'Возможности', choose: 'Выбрать язык', download: 'Скачать',
+    nav: 'Возможности', choose: 'Выбрать язык', download: 'Скачать', skip: 'Перейти к основному содержанию',
     eyebrow: 'Открытый Markdown для компьютера', heading: 'Более спокойный способ писать в Markdown.',
     intro: 'Удобное письмо, связанные заметки и мощный предпросмотр в обычных файлах на вашем компьютере.',
     installer: 'Скачать установщик', portable: 'Портативный ZIP', source: 'Исходный код',
@@ -101,7 +101,7 @@ const locales = [
     file: 'de.html', lang: 'de', locale: 'de_DE', current: 'Deutsch',
     title: 'Inkstill — Open-Source-Markdown-Editor für Windows, macOS und Linux',
     description: 'Ein ruhiger Open-Source-Markdown-Editor mit Vorschau, Suche, Backlinks, Mermaid, KaTeX und PDF-Export.',
-    nav: 'Funktionen', choose: 'Sprache wählen', download: 'Download',
+    nav: 'Funktionen', choose: 'Sprache wählen', download: 'Download', skip: 'Zum Hauptinhalt springen',
     eyebrow: 'Open-Source-Markdown für den Desktop', heading: 'Markdown schreiben, ganz in Ruhe.',
     intro: 'Angenehmes Schreiben, vernetzte Notizen und eine leistungsfähige Vorschau für gewöhnliche Dateien auf deinem Computer.',
     installer: 'Installer herunterladen', portable: 'Portable ZIP', source: 'Quellcode',
@@ -135,8 +135,8 @@ function render(locale) {
 <link rel="icon" href="assets/icon.png"><link rel="stylesheet" href="styles.css">
 <meta property="og:type" content="website"><meta property="og:site_name" content="Inkstill"><meta property="og:title" content="${locale.title}"><meta property="og:description" content="${locale.description}"><meta property="og:url" content="${base}${locale.file}"><meta property="og:locale" content="${locale.locale}">${ogAlternates}<meta property="og:image" content="${base}assets/inkstill-social-preview.png"><meta property="og:image:width" content="1280"><meta property="og:image:height" content="640"><meta name="twitter:card" content="summary_large_image">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Inkstill","applicationCategory":"UtilitiesApplication","operatingSystem":"Windows 10, Windows 11, macOS, Linux","softwareVersion":"1.1.2","description":${JSON.stringify(locale.description)},"url":"${base}${locale.file}","downloadUrl":"${release}Inkstill-1.1.2.Setup.exe","license":"https://opensource.org/license/mit","author":{"@type":"Person","name":"Scotte Liu"},"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script></head>
-<body><header class="site-header"><nav class="nav container" aria-label="${locale.nav}"><a class="brand" href="./"><img src="assets/icon.png" alt=""><span>Inkstill</span></a><div class="nav-links"><a href="#features">${locale.nav}</a><a href="${repository}">GitHub</a><a href="${repository}/releases/tag/v1.1.2-preview.1">${locale.download}</a><details class="language-menu"><summary aria-label="${locale.choose}">${locale.current}</summary><div class="language-options">${menu(locale.current)}</div></details></div></nav></header>
-<main><section class="hero"><div class="container"><p class="eyebrow">${locale.eyebrow}</p><h1>${locale.heading}</h1><p class="hero-copy">${locale.intro}</p><div class="actions"><a class="button primary" href="${release}Inkstill-1.1.2.Setup.exe">${locale.installer}</a><a class="button" href="${release}Inkstill-win32-x64-1.1.2.zip">${locale.portable}</a><a class="button" href="${repository}">${locale.source}</a></div><p class="preview-note">${locale.note}</p><div class="product-frame"><img src="assets/inkstill-split-preview.png" alt="Inkstill Markdown editor" width="1240" height="820"></div></div></section>
+<body><a class="skip-link" href="#main-content">${locale.skip}</a><header class="site-header"><nav class="nav container" aria-label="${locale.nav}"><a class="brand" href="./"><img src="assets/icon.png" alt=""><span>Inkstill</span></a><div class="nav-links"><a href="#features">${locale.nav}</a><a href="${repository}">GitHub</a><a href="${repository}/releases/tag/v1.1.2-preview.1">${locale.download}</a><details class="language-menu"><summary aria-label="${locale.choose}">${locale.current}</summary><div class="language-options">${menu(locale.current)}</div></details></div></nav></header>
+<main id="main-content"><section class="hero"><div class="container"><p class="eyebrow">${locale.eyebrow}</p><h1>${locale.heading}</h1><p class="hero-copy">${locale.intro}</p><div class="actions"><a class="button primary" href="${release}Inkstill-1.1.2.Setup.exe">${locale.installer}</a><a class="button" href="${release}Inkstill-win32-x64-1.1.2.zip">${locale.portable}</a><a class="button" href="${repository}">${locale.source}</a></div><p class="preview-note">${locale.note}</p><div class="product-frame"><img src="assets/inkstill-split-preview.png" alt="Inkstill Markdown editor" width="1240" height="820"></div></div></section>
 <section id="features"><div class="container"><div class="section-heading center"><p class="eyebrow">${locale.section}</p><h2>${locale.sectionTitle}</h2></div><div class="benefit-grid">${cards}</div></div></section>
 <section><div class="container showcase"><div class="showcase-image"><img src="assets/inkstill-command-palette.png" alt="Inkstill command palette" loading="lazy" width="1240" height="820"></div><div class="showcase-copy"><p class="eyebrow">${locale.workspaceEyebrow}</p><h2>${locale.workspaceTitle}</h2><p>${locale.workspaceText}</p><ul class="feature-list">${workspaceItems}</ul></div></div></section>
 <section><div class="container showcase reverse"><div class="showcase-copy"><p class="eyebrow">${locale.markdownEyebrow}</p><h2>${locale.markdownTitle}</h2><p>${locale.markdownText}</p><ul class="feature-list">${markdownItems}</ul></div><div class="showcase-image"><img src="assets/inkstill-writing-tools.png" alt="Inkstill writing tools" loading="lazy" width="1240" height="820"></div></div></section>
