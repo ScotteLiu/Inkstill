@@ -22,7 +22,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/ScotteLiu/Inkstill/releases"><img src="https://img.shields.io/badge/Download-Windows_x64-1f6f5f?style=for-the-badge&logo=windows" alt="Download Inkstill for Windows"></a>
+  <a href="https://github.com/ScotteLiu/Inkstill/releases/download/v1.1.0-preview.1/Inkstill-1.1.0.Setup.exe"><img src="https://img.shields.io/badge/Download-Windows_x64-1f6f5f?style=for-the-badge&logo=windows" alt="Download Inkstill for Windows"></a>
 </p>
 
 ![Inkstill split editor and rendered Markdown preview](docs/images/inkstill-split-preview.png)
@@ -72,11 +72,11 @@ notes into a navigable workspace.
 
 ## Download
 
-The [Releases page](https://github.com/ScotteLiu/Inkstill/releases) provides:
+Direct downloads:
 
-- `Inkstill-1.1.0 Setup.exe` — per-user Windows x64 installer.
-- `Inkstill-win32-x64-1.1.0.zip` — portable build; extract and run `Inkstill.exe`.
-- `SHA256SUMS.txt` — checksums for verifying both downloads.
+- [Windows x64 installer](https://github.com/ScotteLiu/Inkstill/releases/download/v1.1.0-preview.1/Inkstill-1.1.0.Setup.exe)
+- [Portable Windows x64 ZIP](https://github.com/ScotteLiu/Inkstill/releases/download/v1.1.0-preview.1/Inkstill-win32-x64-1.1.0.zip) — extract and run `Inkstill.exe`.
+- [SHA-256 checksums](https://github.com/ScotteLiu/Inkstill/releases/download/v1.1.0-preview.1/SHA256SUMS.txt)
 
 > **Preview notice:** Current binaries are not yet Authenticode-signed, so Windows
 > may show a SmartScreen warning. Source, locked dependencies, SBOM, third-party

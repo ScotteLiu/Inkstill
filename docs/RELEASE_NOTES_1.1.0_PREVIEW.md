@@ -6,9 +6,9 @@ Inkstill is a calm, local-first Markdown workspace for Windows x64. This preview
 
 ### Downloads
 
-- **Installer:** `Inkstill-1.1.0 Setup.exe`
-- **Portable:** `Inkstill-win32-x64-1.1.0.zip` — extract and run `Inkstill.exe`
-- **Integrity:** verify both downloads with `SHA256SUMS.txt`
+- **[Download Windows installer](https://github.com/ScotteLiu/Inkstill/releases/download/v1.1.0-preview.1/Inkstill-1.1.0.Setup.exe)** — `Inkstill-1.1.0.Setup.exe`
+- **[Download portable ZIP](https://github.com/ScotteLiu/Inkstill/releases/download/v1.1.0-preview.1/Inkstill-win32-x64-1.1.0.zip)** — extract and run `Inkstill.exe`
+- **[SHA-256 checksums](https://github.com/ScotteLiu/Inkstill/releases/download/v1.1.0-preview.1/SHA256SUMS.txt)** — verify both downloads
 
 ### Important preview notice
 
@@ -32,9 +32,9 @@ Inkstill 是一款安静、以本地文件为核心的 Windows x64 Markdown 工�
 
 ### 下载
 
-- **安装版：** `Inkstill-1.1.0 Setup.exe`
-- **免安装版：** `Inkstill-win32-x64-1.1.0.zip`，解压后运行 `Inkstill.exe`
-- **完整性验证：** 使用 `SHA256SUMS.txt` 验证两个下载文件
+- **[直接下载安装版](https://github.com/ScotteLiu/Inkstill/releases/download/v1.1.0-preview.1/Inkstill-1.1.0.Setup.exe)**：`Inkstill-1.1.0.Setup.exe`
+- **[直接下载免安装版](https://github.com/ScotteLiu/Inkstill/releases/download/v1.1.0-preview.1/Inkstill-win32-x64-1.1.0.zip)**：解压后运行 `Inkstill.exe`
+- **[SHA-256 校验码](https://github.com/ScotteLiu/Inkstill/releases/download/v1.1.0-preview.1/SHA256SUMS.txt)**：用于验证两个下载文件
 
 ### 重要预览版说明
 
