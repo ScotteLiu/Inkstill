@@ -26,30 +26,30 @@ These binaries are not yet Authenticode-signed. Windows may show a SmartScreen w
 - Local image import and clipboard paste
 - HTML/PDF export and Copy as HTML
 
-## 繁體中文
+## 简体中文
 
-Inkstill 是一款安靜、以本機檔案為核心的 Windows x64 Markdown 工作空間。這個預覽版結合忠於原始碼的 Markdown 編輯、多分頁、工作空間搜尋、大綱、Wiki 連結、反向連結、復原、安全預覽、本機圖片處理，以及 HTML/PDF 匯出。
+Inkstill 是一款安静、以本地文件为核心的 Windows x64 Markdown 工作空间。这个预览版结合忠于源码的 Markdown 编辑、多标签页、工作空间搜索、大纲、Wiki 链接、反向链接、恢复、安全预览、本地图片处理，以及 HTML/PDF 导出。
 
-### 下載
+### 下载
 
-- **安裝版：** `Inkstill-1.1.0 Setup.exe`
-- **免安裝綠色版：** `Inkstill-win32-x64-1.1.0.zip`，解壓縮後執行 `Inkstill.exe`
-- **完整性驗證：** 使用 `SHA256SUMS.txt` 驗證兩個下載檔案
+- **安装版：** `Inkstill-1.1.0 Setup.exe`
+- **免安装版：** `Inkstill-win32-x64-1.1.0.zip`，解压后运行 `Inkstill.exe`
+- **完整性验证：** 使用 `SHA256SUMS.txt` 验证两个下载文件
 
-### 重要預覽版說明
+### 重要预览版说明
 
-這些執行檔尚未經 Authenticode 簽章，因此 Windows 可能顯示 SmartScreen 警告。原始碼、建置流程、鎖定依賴、SBOM、第三方授權清單、發佈 manifest 與校驗碼都會公開供檢查。
+这些程序尚未使用 Authenticode 签名，因此 Windows 可能显示 SmartScreen 提示。源代码、构建流程、锁定依赖、SBOM、第三方许可证清单、发布 manifest 与校验码均公开供检查。
 
 ### 主要功能
 
-- 編輯、同步分割與閱讀檢視
-- 多分頁與上次工作階段恢復
-- 資料夾工作空間、全文搜尋、快速開啟、大綱、反向連結與未連結提及
-- GFM、註腳、KaTeX、Mermaid、Wiki 連結、目錄、YAML 中繼資料、提示區塊、Emoji 與上下標
-- 圖形化表格建立器
-- 專注、打字機與 Hemingway 模式
-- 復原日誌、原子寫入、外部修改衝突檢視與換行格式保留
-- 本機圖片匯入與剪貼簿圖片貼上
-- HTML/PDF 匯出與複製 HTML
+- 编辑、同步分屏与阅读视图
+- 多标签页与上次会话恢复
+- 文件夹工作空间、全文搜索、快速打开、大纲、反向链接与未链接提及
+- GFM、脚注、KaTeX、Mermaid、Wiki 链接、目录、YAML 元数据、提示块、Emoji 与上下标
+- 可视化表格生成器
+- 专注、打字机与 Hemingway 模式
+- 恢复日志、原子写入、外部修改冲突检查与换行格式保留
+- 本地图片导入与剪贴板图片粘贴
+- HTML/PDF 导出与复制 HTML
 
 Copyright © 2026 Scotte Liu. Released under the MIT License.

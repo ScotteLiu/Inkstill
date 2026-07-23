@@ -1,99 +1,131 @@
-# Inkstill
+<p align="center">
+  <img src="assets/icon.png" width="96" height="96" alt="Inkstill icon">
+</p>
 
-[English](README.md) · [繁體中文](README.zh-TW.md)
+<h1 align="center">Inkstill</h1>
 
-[![Windows CI](https://github.com/ScotteLiu/Inkstill/actions/workflows/windows-candidate.yml/badge.svg)](https://github.com/ScotteLiu/Inkstill/actions/workflows/windows-candidate.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+<p align="center"><strong>Write quietly. Keep your files yours.</strong></p>
 
-A calm, local-first Markdown workspace for Windows. Inkstill combines a focused writing surface with workspace navigation and knowledge links, while keeping ordinary Markdown files as the source of truth.
+<p align="center">
+  A calm, local-first Markdown workspace for Windows.<br>
+  Beautiful writing, connected notes, and ordinary Markdown files—without an account.
+</p>
 
-Inkstill 是一款安靜、以本機檔案為核心的 Windows Markdown 工作空間。它結合專注寫作介面、資料夾管理與知識連結，並始終以標準 Markdown 檔案作為唯一資料來源。
+<p align="center">
+  <a href="README.md">English</a> · <a href="README.zh-CN.md">简体中文</a>
+</p>
 
-> Inkstill is currently a Windows x64 preview. Public installers remain unsigned until a trusted Authenticode publishing identity is configured. Build from source or use preview binaries only if you understand the Windows SmartScreen warning.
+<p align="center">
+  <a href="https://github.com/ScotteLiu/Inkstill/actions/workflows/windows-candidate.yml"><img src="https://github.com/ScotteLiu/Inkstill/actions/workflows/windows-candidate.yml/badge.svg" alt="Windows CI"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-d7a83e.svg" alt="MIT License"></a>
+  <a href="https://github.com/ScotteLiu/Inkstill/releases"><img src="https://img.shields.io/github/v/release/ScotteLiu/Inkstill?include_prereleases&label=preview&color=1f6f5f" alt="Latest preview"></a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/ScotteLiu/Inkstill/releases"><img src="https://img.shields.io/badge/Download-Windows_x64-1f6f5f?style=for-the-badge&logo=windows" alt="Download Inkstill for Windows"></a>
+</p>
+
+![Inkstill split editor and rendered Markdown preview](docs/images/inkstill-split-preview.png)
+
+## A writing space that stays out of your way
+
+Inkstill keeps Markdown readable while you type, then gives you a polished preview
+when you want it. Open a file and write, or open a folder and turn a collection of
+notes into a navigable workspace.
+
+| Focused writing | Connected notes | Your files |
+| --- | --- | --- |
+| Edit, Split, and Read views with focus and typewriter modes. | Outline, full-text search, Wiki links, backlinks, and unlinked mentions. | Standard Markdown on disk, portable image paths, no required cloud account. |
+
+## See it in action
+
+<table>
+  <tr>
+    <td width="50%">
+      <img src="docs/images/inkstill-command-palette.png" alt="Inkstill command palette">
+      <br><strong>Everything a shortcut away</strong><br>
+      Search commands, formatting, views, exports, and workspace actions from one keyboard-first palette.
+    </td>
+    <td width="50%">
+      <img src="docs/images/inkstill-writing-tools.png" alt="Inkstill writing tools">
+      <br><strong>Shape the space around your words</strong><br>
+      Choose a theme and reading width, then enable focus, typewriter, Hemingway, spellcheck, or a writing goal.
+    </td>
+  </tr>
+</table>
+
+## Highlights
+
+- Rich, source-faithful Markdown with GFM tables and tasks, footnotes, highlighted
+  code, KaTeX math, Mermaid diagrams, Wiki links, table of contents, YAML metadata,
+  alerts, emoji, and sub/superscript.
+- Multiple tabs, last-session restoration, per-document recovery journals, external
+  change warnings, and explicit conflict review.
+- Folder workspaces with file navigation, full-text search, quick open, searchable
+  outline, backlinks, and unlinked mentions.
+- Command palette, graphical Table Builder, Markdown cheat sheet, find and replace,
+  bracket pairing, indentation tools, and keyboard-first formatting.
+- Light, dark, and system themes; focus, typewriter, and Hemingway modes; spellcheck,
+  line numbers, reading time, selection statistics, and word goals.
+- Local image import and clipboard image paste, plus Copy as HTML and standalone
+  HTML/PDF export.
 
 ## Download
 
-Each GitHub preview release provides two Windows x64 downloads:
+The [Releases page](https://github.com/ScotteLiu/Inkstill/releases) provides:
 
-- `Inkstill-1.1.0 Setup.exe` — complete per-user installer.
-- `Inkstill-win32-x64-1.1.0.zip` — portable version; extract it and run `Inkstill.exe` without installation.
+- `Inkstill-1.1.0 Setup.exe` — per-user Windows x64 installer.
+- `Inkstill-win32-x64-1.1.0.zip` — portable build; extract and run `Inkstill.exe`.
+- `SHA256SUMS.txt` — checksums for verifying both downloads.
 
-Verify downloads against `SHA256SUMS.txt`. Preview binaries are not yet Authenticode-signed, so Windows may display a SmartScreen warning.
+> **Preview notice:** Current binaries are not yet Authenticode-signed, so Windows
+> may show a SmartScreen warning. Source, locked dependencies, SBOM, third-party
+> licenses, build manifest, and checksums are published for inspection.
 
-## Features
+## File safety, privacy, and performance
 
-- Edit, synchronized split, and reading views with GFM tables, tasks, footnotes, syntax-highlighted code, KaTeX math, Mermaid diagrams, Wiki links, `[toc]`, YAML metadata, alerts, emoji, sub/superscript, and safe local-image previews.
-- Multiple tabs with unsaved indicators, per-tab recovery, external-change warnings, and automatic restoration of the last file session.
-- Folder workspaces with a file browser, full-text search, quick open from the command palette, document outline, backlinks, and unlinked mentions.
-- Keyboard-first command palette, graphical Table Builder, searchable active-section outline, Markdown cheat sheet, expanded formatting commands, find and replace, bracket pairing, and line indentation.
-- Focus, typewriter, and Hemingway modes; spellcheck, line numbers, light/dark/system themes, three reading widths, selection statistics, reading time, and word goals.
-- Local image import and clipboard-image paste using portable relative paths, plus Copy as HTML and standalone HTML/PDF export.
+- The editor runs in a sandboxed renderer with context isolation, restrictive CSP,
+  secure Electron fuses, and narrow typed IPC.
+- Markdown stays in files you choose and local recovery data. Inkstill has no
+  required account, telemetry service, or document upload path.
+- Saves and recovery writes are serialized; external modifications are never
+  silently overwritten.
+- UTF-8 BOM and LF/CRLF are preserved, with an explicit choice for mixed line endings.
+- Large-file safeguards and bounded workspace caches prevent expensive background
+  work from growing without limits.
+- Runtime budgets continuously check startup, idle CPU, memory, process count, and
+  package size. See [Performance policy](docs/PERFORMANCE.md).
 
-## File integrity and privacy
+## Build from source
 
-- Sandboxed Electron renderer, context isolation, restrictive CSP, verified fuses, and narrow typed IPC.
-- CodeMirror text is the canonical Markdown source; Lezer derives visual decorations without reserializing the document.
-- Monotonic edit/saved revisions, serialized save/recovery queues, and a canonical per-path file mutex.
-- Startup Recovery validates checksums, prioritizes the newest journals, and never treats file-write transaction markers as editor snapshots.
-- External changes stop the write and open a bounded three-way preview instead of silently replacing either version.
-- Recoverable write transactions validate the expected pre-write hash and preserve evidence when an interrupted write meets a new external version.
-- UTF-8 BOM and LF/CRLF preservation; mixed or lone-CR line endings require an explicit choice before editing.
-- Large-file fallback disables rich reveal, wrapping, and whole-document outline analysis above the tested threshold.
-- IME composition blocks save/reload/document switching/close-flush; Recovery resumes immediately after composition ends.
-
-## Development
-
-Use the Node version in `.node-version` (24.14.0) and pnpm 11.9.0.
+Use Node 24.14.0 and pnpm 11.9.0:
 
 ```powershell
 pnpm install --frozen-lockfile
 pnpm start
 ```
 
-To contribute, read [CONTRIBUTING.md](CONTRIBUTING.md). Security issues should be reported according to [SECURITY.md](SECURITY.md), not through a public issue.
-
-Full verification:
+Run all source, security, packaged-app, and runtime checks:
 
 ```powershell
 pnpm verify
 ```
 
-Windows final candidate:
+See [CONTRIBUTING.md](CONTRIBUTING.md) before contributing. Report security issues
+privately according to [SECURITY.md](SECURITY.md), not in a public issue.
 
-```powershell
-pnpm release:candidate
-```
+## Current scope
 
-The candidate command first removes stale outputs, then performs a frozen install, TypeScript and Vitest checks, low-severity dependency audit, registry-signature verification, one Squirrel/ZIP build, source and packaged-app Electron E2E against that same build, SBOM and full third-party-license generation, fuse/ASAR inspection, and SHA-256 generation.
+Inkstill is a Windows x64 preview. macOS and Linux builds need their own packaging,
+IME, lifecycle, signing, and hardware validation. Cloud sync, real-time
+collaboration, hosted publishing, and online AI accounts are not represented as
+features of this local editor.
 
-## Validation
-
-- Vitest covers source fidelity, safe rendering, workspace indexing, CJK-aware statistics, atomic-write recovery, Recovery indexing, document sessions, conflict payloads, editor policies, and performance guards.
-- Electron E2E covers sandbox/editing, rich preview, command search, multiple tabs, fast crash Recovery, mixed-EOL choice, source/visual history, and the real packaged executable.
-- Full dependency audit and registry package-signature verification are required by the release command.
-- Windows x64 ASAR package, secure Electron fuses, CycloneDX SBOM, full third-party license bundle, and SHA-256 evidence are automated.
-- Disposable-runner Squirrel install/launch/uninstall smoke is part of Windows CI; an actual old-version-to-new-version update matrix is not yet claimed.
-
-## Deliberate limits
-
-- Raw HTML is displayed as source in Preview instead of executed. This keeps preview content from becoming an application script surface.
-- Conflict review is a bounded preview and does not auto-merge.
-- Cloud sync, real-time collaboration, hosted publishing, AI-provider accounts, and a third-party plugin marketplace are separate online services and are not presented as local editor features.
-- Real Microsoft Zhuyin/Pinyin/Cangjie dogfood remains required; synthetic composition events are not a substitute.
-- Windows writes use a recoverable transaction journal, but native `ReplaceFileW` metadata/ACL parity remains a public-release gate.
-- This candidate is Windows x64 only. macOS/Linux packaging, IME, close lifecycle, signing, and notarization require their own runners and hardware.
-
-## Release status
-
-`pnpm release:candidate` produces a candidate whose evidence records whether signatures are present; signatures are not required at this stage. Inputs are hashed and traceable, but bit-for-bit reproducibility is not claimed. `pnpm release:public` is intentionally fail-closed until a clean Git build has a trusted, timestamped Authenticode identity. Native file metadata/ACL validation, installer-upgrade evidence, and real Windows IME dogfooding are also required before Inkstill is described as a stable public release. See `release/README.md` for exact gates.
-
-## License
+## License and credits
 
 Inkstill is open source under the [MIT License](LICENSE).
 
 Copyright © 2026 Scotte Liu.
-
-## Credits
 
 - **Scotte Liu** — Creator, copyright holder, and lead developer
 - **OpenAI Codex** — Development assistance

@@ -32,10 +32,11 @@
     "test:installer": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/installer-smoke.ps1",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
+    "privacy:scan": "node scripts/privacy-scan.mjs",
     "verify:supply-chain": "pnpm audit --audit-level low && pnpm audit signatures",
     "gate:candidate": "node scripts/release-gate.mjs --require-installer",
     "gate:public": "node scripts/release-gate.mjs --require-installer --require-signature",
-    "verify:source": "pnpm typecheck && pnpm test && pnpm verify:supply-chain",
+    "verify:source": "pnpm privacy:scan && pnpm typecheck && pnpm test && pnpm verify:supply-chain",
     "verify": "pnpm verify:source && pnpm package && pnpm test:e2e && pnpm test:runtime",
     "release:candidate": "pnpm clean:release && pnpm install --frozen-lockfile && pnpm verify:source && pnpm make && pnpm test:e2e && pnpm test:runtime && pnpm gate:candidate",
     "release:public": "pnpm release:candidate && pnpm gate:public && pnpm test:installer -DisposableEnvironment -RequireSignature"
