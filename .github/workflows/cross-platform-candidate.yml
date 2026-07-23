@@ -60,14 +60,14 @@ jobs:
         if: matrix.platform == 'linux'
         run: sudo apt-get update && sudo apt-get install --yes fakeroot rpm xvfb
       - run: pnpm install --frozen-lockfile
+      - name: Build native packages
+        run: pnpm make --platform=${{ matrix.platform }} --arch=${{ matrix.arch }}
       - name: Exercise the application on macOS
         if: matrix.platform == 'darwin' && matrix.arch == 'x64'
         run: pnpm test:e2e
       - name: Exercise the application on Linux
         if: matrix.platform == 'linux'
         run: xvfb-run --auto-servernum pnpm test:e2e
-      - name: Build native packages
-        run: pnpm make --platform=${{ matrix.platform }} --arch=${{ matrix.arch }}
       - name: Validate native packages
         run: node scripts/platform-artifact-gate.mjs --platform ${{ matrix.platform }} --arch ${{ matrix.arch }}
       - name: Validate macOS bundle metadata
