@@ -12,26 +12,32 @@ interface MarkdownPreviewProps {
 
 let diagramSequence = 0;
 let mermaidPromise: Promise<(typeof import('mermaid'))['default']> | null = null;
+let mermaidTheme: 'dark' | 'neutral' | null = null;
 const PREVIEW_UPDATE_DELAY_MS = 80;
 const LARGE_PREVIEW_UPDATE_DELAY_MS = 180;
 const LARGE_PREVIEW_THRESHOLD = 500_000;
 
 function loadMermaid(): Promise<(typeof import('mermaid'))['default']> {
   if (!mermaidPromise) {
-    mermaidPromise = import('mermaid').then(({ default: mermaid }) => {
-      const preference = document.documentElement.dataset.theme;
-      const dark = preference === 'dark'
-        || (preference !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    mermaidPromise = import('mermaid').then(({ default: mermaid }) => mermaid);
+  }
+  return mermaidPromise.then((mermaid) => {
+    const preference = document.documentElement.dataset.theme;
+    const dark = preference === 'dark'
+      || (preference !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    const theme = dark ? 'dark' : 'neutral';
+    // Diagrams must follow theme switches made after the first render.
+    if (mermaidTheme !== theme) {
+      mermaidTheme = theme;
       mermaid.initialize({
         startOnLoad: false,
         securityLevel: 'strict',
         suppressErrorRendering: true,
-        theme: dark ? 'dark' : 'neutral',
+        theme,
       });
-      return mermaid;
-    });
-  }
-  return mermaidPromise;
+    }
+    return mermaid;
+  });
 }
 
 export function MarkdownPreview({
@@ -47,6 +53,11 @@ export function MarkdownPreview({
     ? renderedSource.content
     : content;
   const html = useMemo(() => renderMarkdown(source), [source]);
+  // The object passed to dangerouslySetInnerHTML must keep a stable identity:
+  // a fresh { __html } object on every render makes React re-apply innerHTML
+  // on unrelated re-renders, wiping rendered Mermaid diagrams and loaded
+  // local images between renders.
+  const markup = useMemo(() => ({ __html: html }), [html]);
 
   useEffect(() => {
     if (renderedSource.documentId !== documentId) {
@@ -164,7 +175,7 @@ export function MarkdownPreview({
           onOpenExternal?.(anchor.href);
         }
       }}
-      dangerouslySetInnerHTML={{ __html: html }}
+      dangerouslySetInnerHTML={markup}
     />
   );
 }

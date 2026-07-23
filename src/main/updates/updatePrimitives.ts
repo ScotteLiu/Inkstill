@@ -21,13 +21,44 @@ export interface UpdateCandidate {
   checksums: ReleaseAsset;
 }
 
-const VERSION_PATTERN = /^v?(\d+)\.(\d+)\.(\d+)(?:[-+].*)?$/i;
+const VERSION_PATTERN = /^v?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+.*)?$/i;
 
 export function parseVersion(value: string): [number, number, number] | null {
   const match = VERSION_PATTERN.exec(value.trim());
   return match
     ? [Number(match[1]), Number(match[2]), Number(match[3])]
     : null;
+}
+
+function parsePrerelease(value: string): string[] | null {
+  const match = VERSION_PATTERN.exec(value.trim());
+  if (!match) return null;
+  return match[4] ? match[4].split('.') : [];
+}
+
+function comparePrereleaseIdentifiers(left: string[], right: string[]): number {
+  // A release without prerelease identifiers is newer than any prerelease of
+  // the same core version; among prereleases, identifiers compare per semver.
+  if (left.length === 0 && right.length === 0) return 0;
+  if (left.length === 0) return 1;
+  if (right.length === 0) return -1;
+  for (let index = 0; index < Math.max(left.length, right.length); index += 1) {
+    const leftPart = left[index];
+    const rightPart = right[index];
+    if (leftPart === undefined) return -1;
+    if (rightPart === undefined) return 1;
+    const leftNumeric = /^\d+$/.test(leftPart);
+    const rightNumeric = /^\d+$/.test(rightPart);
+    if (leftNumeric && rightNumeric) {
+      const difference = Number(leftPart) - Number(rightPart);
+      if (difference !== 0) return difference;
+    } else if (leftNumeric !== rightNumeric) {
+      return leftNumeric ? -1 : 1;
+    } else if (leftPart !== rightPart) {
+      return leftPart < rightPart ? -1 : 1;
+    }
+  }
+  return 0;
 }
 
 export function compareVersions(left: string, right: string): number {
@@ -38,7 +69,10 @@ export function compareVersions(left: string, right: string): number {
     const difference = leftVersion[index] - rightVersion[index];
     if (difference !== 0) return difference;
   }
-  return 0;
+  return comparePrereleaseIdentifiers(
+    parsePrerelease(left) ?? [],
+    parsePrerelease(right) ?? [],
+  );
 }
 
 function safeGitHubDownload(asset: ReleaseAsset): boolean {
@@ -73,7 +107,9 @@ export function selectUpdate(
     const parsed = parseVersion(release.tag_name);
     if (!parsed) return [];
     const version = parsed.join('.');
-    if (compareVersions(version, currentVersion) <= 0) return [];
+    // Compare full tags so prerelease ordering (e.g. -preview.2 vs -preview.1,
+    // and stable over prerelease) is respected.
+    if (compareVersions(release.tag_name, currentVersion) <= 0) return [];
     const installer = release.assets.find((asset) =>
       /^Inkstill-[\d.]+(?:[ ._-])Setup\.exe$/i.test(asset.name)
       && safeGitHubDownload(asset));
@@ -82,22 +118,31 @@ export function selectUpdate(
       && safeGitHubDownload(asset));
     if (!installer || !checksums) return [];
     return [{
-      version,
-      releaseName: release.name?.trim() || `Inkstill ${version}`,
-      releaseUrl: release.html_url,
-      installer,
-      checksums,
+      candidate: {
+        version,
+        releaseName: release.name?.trim() || `Inkstill ${version}`,
+        releaseUrl: release.html_url,
+        installer,
+        checksums,
+      },
+      tag: release.tag_name,
     }];
   });
-  return candidates.sort((left, right) => compareVersions(right.version, left.version))[0] ?? null;
+  return candidates
+    .sort((left, right) => compareVersions(right.tag, left.tag))[0]?.candidate ?? null;
 }
 
 function normalizedAssetName(value: string): string {
-  return value.trim().toLocaleLowerCase('en-US').replace(/[ ._-]+/g, '-');
+  // Checksum manifests list repo-relative paths (for example
+  // "out/make/squirrel.windows/x64/Inkstill-1.1.1 Setup.exe"), while release
+  // assets carry bare file names, so compare by base name only.
+  const baseName = value.trim().split(/[\\/]/).at(-1) ?? '';
+  return baseName.toLocaleLowerCase('en-US').replace(/[ ._-]+/g, '-');
 }
 
 export function checksumForAsset(checksumFile: string, assetName: string): string | null {
   const expectedName = normalizedAssetName(assetName);
+  if (!expectedName) return null;
   for (const line of checksumFile.split(/\r?\n/)) {
     const match = /^([a-f\d]{64})\s+\*?(.+?)\s*$/i.exec(line);
     if (match && normalizedAssetName(match[2]) === expectedName) {

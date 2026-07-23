@@ -80,19 +80,64 @@ interface PlaceholderStore {
   restore(html: string): string;
 }
 
-function placeholders(): PlaceholderStore {
+function placeholders(prefix: string): PlaceholderStore {
   const values: string[] = [];
+  const pattern = new RegExp(`${prefix}(\\d+)E`, 'g');
   return {
     values,
     add(html) {
       const index = values.push(html) - 1;
-      return `INKSTILLPLACEHOLDER${index}END`;
+      return `${prefix}${index}E`;
     },
     restore(html) {
-      return html.replace(/INKSTILLPLACEHOLDER(\d+)END/g, (_match, rawIndex: string) =>
+      return html.replace(pattern, (_match, rawIndex: string) =>
         values[Number(rawIndex)] ?? '');
     },
   };
+}
+
+// A per-render nonce keeps placeholder tokens unguessable, so literal token-like
+// text in a document can never expand into internal markup.
+function renderNonce(): string {
+  return Math.random().toString(36).slice(2, 10).padEnd(8, '0');
+}
+
+function maskInlineCode(line: string, codeStore: PlaceholderStore): string {
+  return line.replace(/(?<!`)(`+)(?!`)(.+?)\1(?!`)/g, (span) => codeStore.add(span));
+}
+
+// Fenced code blocks and inline code spans are opaque to every Markdown
+// transformation below; masking them first keeps `$`, `~`, `^`, `==`, `[[`,
+// `[^`, and `:emoji:` sequences inside code exactly as written.
+function maskCodeRegions(markdown: string, codeStore: PlaceholderStore): string {
+  const lines = markdown.split('\n');
+  const output: string[] = [];
+  let fence: string | null = null;
+  let block: string[] = [];
+  for (const line of lines) {
+    if (fence) {
+      block.push(line);
+      const close = /^\s{0,3}(`{3,}|~{3,})\s*$/.exec(line);
+      if (close && close[1][0] === fence[0] && close[1].length >= fence.length) {
+        output.push(codeStore.add(block.join('\n')));
+        fence = null;
+        block = [];
+      }
+      continue;
+    }
+    const open = /^\s{0,3}(`{3,}|~{3,})/.exec(line);
+    if (open) {
+      fence = open[1];
+      block = [line];
+      continue;
+    }
+    output.push(maskInlineCode(line, codeStore));
+  }
+  if (fence) {
+    // An unclosed fence runs to the end of the document.
+    output.push(codeStore.add(block.join('\n')));
+  }
+  return output.join('\n');
 }
 
 function escapeHtml(value: string): string {
@@ -163,13 +208,19 @@ function frontMatter(markdown: string, store: PlaceholderStore): string {
   return `${card ? `${store.add(card)}\n\n` : ''}${markdown.slice(match[0].length)}`;
 }
 
-function preprocess(markdown: string, store: PlaceholderStore): string {
+function preprocess(
+  markdown: string,
+  store: PlaceholderStore,
+  codeStore: PlaceholderStore,
+  alertMarker: string,
+): string {
   const footnotes = new Map<string, string>();
   const headings = extractHeadings(markdown);
-  let prepared = frontMatter(markdown, store).replace(/^\[\^([^\]]+)\]:\s*(.+(?:\n(?: {2,}|\t).+)*)$/gm, (_match, id: string, body: string) => {
-    footnotes.set(id, body.replace(/\n(?: {2,}|\t)/g, '\n'));
-    return '';
-  });
+  let prepared = maskCodeRegions(frontMatter(markdown, store), codeStore)
+    .replace(/^\[\^([^\]]+)\]:\s*(.+(?:\n(?: {2,}|\t).+)*)$/gm, (_match, id: string, body: string) => {
+      footnotes.set(id, body.replace(/\n(?: {2,}|\t)/g, '\n'));
+      return '';
+    });
 
   prepared = prepared.replace(/\$\$([\s\S]+?)\$\$/g, (_match, source: string) =>
     `\n\n${store.add(`<div class="math-block">${renderMath(source, true)}</div>`)}\n\n`);
@@ -200,7 +251,7 @@ function preprocess(markdown: string, store: PlaceholderStore): string {
     return emoji ? store.add(`<span class="emoji" role="img" aria-label="${escapeHtml(name)}">${emoji}</span>`) : match;
   });
   prepared = prepared.replace(/^>\s*\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*$/gim, (_match, type: string) =>
-    `> INKSTILLALERT${type.toLocaleUpperCase('en-US')}`);
+    `> ${alertMarker}${type.toLocaleUpperCase('en-US')}`);
   prepared = prepared.replace(/^\s*\[toc\]\s*$/gim, () => {
     if (headings.length === 0) return store.add('<nav class="table-of-contents"><strong>Contents</strong><p>No headings</p></nav>');
     const items = headings.map((heading) =>
@@ -216,7 +267,7 @@ function preprocess(markdown: string, store: PlaceholderStore): string {
       .join('');
     prepared += `\n\n${store.add(`<section class="footnotes"><hr><ol>${items}</ol></section>`)}`;
   }
-  return prepared;
+  return codeStore.restore(prepared);
 }
 
 function createRenderer(store: PlaceholderStore): Renderer {
@@ -274,17 +325,20 @@ function createRenderer(store: PlaceholderStore): Renderer {
 }
 
 export function renderMarkdown(markdown: string): string {
-  const store = placeholders();
+  const nonce = renderNonce();
+  const store = placeholders(`INKSTILLHTML${nonce}N`);
+  const codeStore = placeholders(`INKSTILLCODE${nonce}N`);
+  const alertMarker = `INKSTILLALERT${nonce}`;
   const parser = new Marked({
     gfm: true,
     breaks: false,
     async: false,
     renderer: createRenderer(store),
   });
-  const prepared = preprocess(markdown, store);
+  const prepared = preprocess(markdown, store, codeStore, alertMarker);
   const rendered = parser.parse(prepared, { async: false });
   const restored = store.restore(rendered).replace(
-    /<blockquote>\s*<p>INKSTILLALERT(NOTE|TIP|IMPORTANT|WARNING|CAUTION)(?:\s*<\/p>)?/gi,
+    new RegExp(`<blockquote>\\s*<p>${alertMarker}(NOTE|TIP|IMPORTANT|WARNING|CAUTION)(?:\\s*</p>)?`, 'gi'),
     (_match, type: string) => `<blockquote class="markdown-alert alert-${type.toLocaleLowerCase('en-US')}"><p><strong>${type[0]}${type.slice(1).toLocaleLowerCase('en-US')}</strong><br>`,
   );
   return DOMPurify.sanitize(restored, {

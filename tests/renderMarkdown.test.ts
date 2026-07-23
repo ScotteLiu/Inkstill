@@ -85,6 +85,43 @@ describe('renderMarkdown', () => {
     expect(html).toContain('<sub>2</sub>');
     expect(html).toContain('<sup>2</sup>');
   });
+
+  it('keeps writing extensions literal inside fenced code blocks', () => {
+    const html = renderMarkdown([
+      '```bash',
+      'echo $HOME and $USER at ~/one ~/two',
+      'grep -- "a ==b== c" file[^1] [[note]] :tada:',
+      '```',
+    ].join('\n'));
+    expect(html).not.toContain('katex');
+    expect(html).not.toContain('<sub>');
+    expect(html).not.toContain('<mark>');
+    expect(html).not.toContain('wikilink');
+    expect(html).not.toContain('footnote-ref');
+    expect(html).not.toContain('class="emoji"');
+    expect(html).toContain('$HOME');
+  });
+
+  it('keeps writing extensions literal inside inline code', () => {
+    const html = renderMarkdown('Use `$PATH` then `a^2^` and `x ~i~` or `[[link]]`.');
+    expect(html).not.toContain('katex');
+    expect(html).not.toContain('<sup>');
+    expect(html).not.toContain('<sub>');
+    expect(html).not.toContain('wikilink');
+    expect(html).toContain('$PATH');
+  });
+
+  it('keeps literal placeholder-like text intact', () => {
+    const html = renderMarkdown('$a$\n\nINKSTILLPLACEHOLDER0END');
+    expect(html).toContain('INKSTILLPLACEHOLDER0END');
+    expect(html).toContain('class="katex"');
+  });
+
+  it('masks unclosed fences through the end of the document', () => {
+    const html = renderMarkdown('```bash\necho $HOME and $USER');
+    expect(html).not.toContain('katex');
+    expect(html).toContain('$HOME');
+  });
 });
 
 describe('extractWikiLinks', () => {

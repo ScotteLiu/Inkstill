@@ -71,7 +71,14 @@ async function collectMarkdownFiles(root: string, forceRefresh = false): Promise
   const files: string[] = [];
   const visit = async (folder: string, depth: number): Promise<void> => {
     if (depth > 20 || files.length >= MAX_WORKSPACE_FILES) return;
-    const entries = await readdir(folder, { withFileTypes: true });
+    let entries;
+    try {
+      entries = await readdir(folder, { withFileTypes: true });
+    } catch (error) {
+      // One unreadable subfolder must not abort the whole workspace scan.
+      if (depth === 0) throw error;
+      return;
+    }
     entries.sort((a, b) => a.name.localeCompare(b.name));
     for (const entry of entries) {
       if (files.length >= MAX_WORKSPACE_FILES) return;
@@ -190,7 +197,15 @@ export async function findWorkspaceMentions(root: string, noteName: string): Pro
   const target = basename(noteName, extname(noteName));
   if (!target) return [];
   const linkedPattern = new RegExp(`\\[\\[${escapeRegExp(target)}(?:[#|\\]])`, 'i');
-  const namePattern = new RegExp(`\\b${escapeRegExp(target)}\\b`, 'i');
+  // Word boundaries only exist next to ASCII word characters; scripts such as
+  // CJK write mentions inside running text with no delimiters at all, so only
+  // require a boundary on the sides of the name that end in a word character.
+  const leadingBoundary = /^[A-Za-z0-9_]/.test(target) ? '(?<![\\p{L}\\p{N}])' : '';
+  const trailingBoundary = /[A-Za-z0-9_]$/.test(target) ? '(?![\\p{L}\\p{N}])' : '';
+  const namePattern = new RegExp(
+    `${leadingBoundary}${escapeRegExp(target)}${trailingBoundary}`,
+    'iu',
+  );
   const files = await collectMarkdownFiles(root);
   const mentions: WorkspaceMention[] = [];
   for (const filePath of files) {

@@ -298,7 +298,10 @@ function sendMenuCommand(command: MenuCommand): void {
   mainWindow.webContents.send(IPC.menuCommand, menuCommandSchema.parse(command));
 }
 
-const supportedDocumentExtensions = new Set(['.md', '.markdown', '.txt']);
+// Keep in sync with the Open dialog filters (documentService) and the
+// workspace scanner: every extension the app can open must also be accepted
+// when the operating system hands us a file.
+const supportedDocumentExtensions = new Set(['.md', '.markdown', '.mdown', '.mkd', '.txt']);
 
 function queueSystemOpenPath(candidate: string): void {
   if (!candidate || candidate.startsWith('-')) return;
@@ -462,6 +465,30 @@ async function downloadVerifiedInstaller(candidate: UpdateCandidate): Promise<st
   }
 }
 
+function updatePreferencesPath(): string {
+  return join(app.getPath('userData'), 'update-preferences.json');
+}
+
+async function readDeclinedUpdateVersion(): Promise<string | null> {
+  try {
+    const parsed = JSON.parse(await readFile(updatePreferencesPath(), 'utf8')) as { declinedVersion?: unknown };
+    return typeof parsed.declinedVersion === 'string' ? parsed.declinedVersion : null;
+  } catch {
+    return null;
+  }
+}
+
+async function rememberDeclinedUpdateVersion(version: string): Promise<void> {
+  try {
+    await writeFileAtomically(
+      updatePreferencesPath(),
+      Buffer.from(JSON.stringify({ declinedVersion: version }, null, 2), 'utf8'),
+    );
+  } catch (error) {
+    console.error('Unable to remember the declined update version', error);
+  }
+}
+
 async function updateDialog(options: Electron.MessageBoxOptions): Promise<Electron.MessageBoxReturnValue> {
   return mainWindow && !mainWindow.isDestroyed()
     ? dialog.showMessageBox(mainWindow, options)
@@ -514,6 +541,8 @@ async function checkForUpdates(manual: boolean): Promise<void> {
       }
       return;
     }
+    // A declined version is only re-offered when the user checks manually.
+    if (!manual && (await readDeclinedUpdateVersion()) === candidate.version) return;
 
     const decision = await updateDialog({
       type: 'info',
@@ -529,7 +558,10 @@ async function checkForUpdates(manual: boolean): Promise<void> {
       await shell.openExternal(candidate.releaseUrl);
       return;
     }
-    if (decision.response !== 0) return;
+    if (decision.response !== 0) {
+      await rememberDeclinedUpdateVersion(candidate.version);
+      return;
+    }
 
     mainWindow?.setProgressBar(2);
     const installer = await downloadVerifiedInstaller(candidate);

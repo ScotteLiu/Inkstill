@@ -330,7 +330,31 @@ async function recoverInterruptedWriteUnlocked(targetPath: string): Promise<void
     return;
   }
 
-  if (transaction.verifyExpected) {
+  // A crash while installing the new content leaves the target as a byte
+  // prefix of the new file (the install copies sequentially), with the intact
+  // temporary file and a backup matching the expected version alongside. In
+  // exactly that situation every byte of evidence needed for a safe repair
+  // exists, so skip the conflict checks and let the recovery branches below
+  // install the verified new content; the partial target bytes are still
+  // rescued to a timestamped backup first. Any other divergent target keeps
+  // the conservative conflict behavior.
+  const interruptedInstallEvidence = async (): Promise<boolean> => {
+    if (!backupPresent || !tempPresent) return false;
+    if ((await hashFile(tempPath)) !== transaction.newSha256) return false;
+    if (
+      transaction.expectedSha256 === null ||
+      (await hashFile(backupPath)) !== transaction.expectedSha256
+    ) return false;
+    if (!targetPresent) return true;
+    const targetMetadata = await stat(targetPath);
+    if (targetMetadata.size > MAX_TRANSACTION_HASH_BYTES) return false;
+    const targetBytes = await readFile(targetPath);
+    const newBytes = await readFile(tempPath);
+    return targetBytes.byteLength < newBytes.byteLength &&
+      newBytes.subarray(0, targetBytes.byteLength).equals(targetBytes);
+  };
+
+  if (transaction.verifyExpected && !(await interruptedInstallEvidence())) {
     if (targetPresent) {
       if (
         transaction.expectedSha256 === null ||

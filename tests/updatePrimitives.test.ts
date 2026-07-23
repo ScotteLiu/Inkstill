@@ -59,4 +59,39 @@ describe('update primitives', () => {
     expect(checksumForAsset(`${hash}  Inkstill-1.1.1 Setup.exe\n`, 'Inkstill-1.1.1.Setup.exe')).toBe(hash);
     expect(checksumForAsset(`${hash}  other.exe\n`, 'Inkstill-1.1.1.Setup.exe')).toBeNull();
   });
+
+  it('matches checksum entries that list repo-relative paths', () => {
+    const hash = 'b'.repeat(64);
+    const manifest = [
+      `${'c'.repeat(64)}  out/make/zip/win32/x64/Inkstill-win32-x64-1.1.1.zip`,
+      `${hash}  out/make/squirrel.windows/x64/Inkstill-1.1.1 Setup.exe`,
+    ].join('\n');
+    expect(checksumForAsset(manifest, 'Inkstill-1.1.1.Setup.exe')).toBe(hash);
+  });
+
+  it('orders prerelease identifiers below their stable release', () => {
+    expect(compareVersions('1.1.1', '1.1.1-preview.1')).toBeGreaterThan(0);
+    expect(compareVersions('1.1.1-preview.2', '1.1.1-preview.1')).toBeGreaterThan(0);
+    expect(compareVersions('1.1.1-preview.10', '1.1.1-preview.9')).toBeGreaterThan(0);
+    expect(compareVersions('1.1.1-preview.1', '1.1.1-preview.1')).toBe(0);
+    expect(compareVersions('1.1.1-preview.1', '1.1.1')).toBeLessThan(0);
+  });
+
+  it('prefers the stable release over a same-version prerelease', () => {
+    const stable = release('1.2.0');
+    stable.tag_name = 'v1.2.0';
+    stable.prerelease = false;
+    stable.html_url = 'https://github.com/ScotteLiu/Inkstill/releases/tag/v1.2.0';
+    const selected = selectUpdate([release('1.2.0'), stable], '1.1.0');
+    expect(selected?.releaseUrl).toBe('https://github.com/ScotteLiu/Inkstill/releases/tag/v1.2.0');
+  });
+
+  it('offers a newer preview of the same core version', () => {
+    const older = release('1.2.0');
+    const newer = release('1.2.0');
+    newer.tag_name = 'v1.2.0-preview.2';
+    newer.html_url = 'https://github.com/ScotteLiu/Inkstill/releases/tag/v1.2.0-preview.2';
+    expect(selectUpdate([older], '1.2.0-preview.1')).toBeNull();
+    expect(selectUpdate([older, newer], '1.2.0-preview.1')?.releaseUrl).toBe(newer.html_url);
+  });
 });

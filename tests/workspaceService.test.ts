@@ -46,6 +46,22 @@ describe('workspace service', () => {
     expect(alphaMentions).toMatchObject([{ relativePath: 'notes/Beta.md', linked: false }]);
   });
 
+  it('finds plain-text mentions of CJK note names', async () => {
+    const root = await fixture();
+    await writeFile(join(root, '工作日记.md'), '# 工作日记\n', 'utf8');
+    await writeFile(join(root, 'Journal.md'), '今天更新了工作日记的内容。\n', 'utf8');
+    const mentions = await findWorkspaceMentions(root, '工作日记.md');
+    expect(mentions).toMatchObject([{ relativePath: 'Journal.md', line: 1, linked: false }]);
+  });
+
+  it('still bounds English mentions at word edges', async () => {
+    const root = await fixture();
+    await writeFile(join(root, 'Note.md'), 'Keep notes and Alphabet here, Alpha too.\n', 'utf8');
+    const mentions = await findWorkspaceMentions(root, 'Alpha.md');
+    const noteMention = mentions.filter((mention) => mention.relativePath === 'Note.md');
+    expect(noteMention).toHaveLength(1);
+  });
+
   it('rejects paths that escape the workspace', async () => {
     const root = await fixture();
     expect(() => resolveWorkspacePath(root, '../outside.md')).toThrow(/outside/i);

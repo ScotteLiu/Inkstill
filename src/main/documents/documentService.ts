@@ -610,6 +610,11 @@ export class DocumentService {
     watcher.on('unlink', () => void notify().catch((error) =>
       console.error('File watcher unlink check failed', error),
     ));
+    // Editors that save via rename-replace surface as unlink followed by add,
+    // so a recreated file must be reported as an external change too.
+    watcher.on('add', () => void notify().catch((error) =>
+      console.error('File watcher add check failed', error),
+    ));
     watcher.on('error', (error) => console.error('File watcher error', error));
     this.watchers.set(session.id, watcher);
   }

@@ -45,6 +45,15 @@ export function CommandPalette({ commands, onClose }: CommandPaletteProps): Reac
   }, []);
 
   useEffect(() => {
+    // Escape must close the palette even when focus is on a result button.
+    const close = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', close);
+    return () => window.removeEventListener('keydown', close);
+  }, [onClose]);
+
+  useEffect(() => {
     setSelectedIndex(0);
   }, [query]);
 
@@ -68,6 +77,7 @@ export function CommandPalette({ commands, onClose }: CommandPaletteProps): Reac
             placeholder="Type a command…"
             aria-label="Search commands"
             aria-controls="command-results"
+            aria-activedescendant={matches.length > 0 ? `command-option-${selectedIndex}` : undefined}
             onChange={(event) => setQuery(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === 'Escape') {
@@ -94,6 +104,7 @@ export function CommandPalette({ commands, onClose }: CommandPaletteProps): Reac
             <button
               type="button"
               role="option"
+              id={`command-option-${index}`}
               aria-selected={index === selectedIndex}
               key={command.id}
               onMouseMove={() => setSelectedIndex(index)}

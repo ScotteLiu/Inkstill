@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+
 interface MarkdownCheatSheetProps {
   onClose(): void;
 }
@@ -23,8 +25,18 @@ const EXAMPLES = [
 ] as const;
 
 export function MarkdownCheatSheet({ onClose }: MarkdownCheatSheetProps): React.JSX.Element {
+  useEffect(() => {
+    const close = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', close);
+    return () => window.removeEventListener('keydown', close);
+  }, [onClose]);
+
   return (
-    <div className="palette-backdrop">
+    <div className="palette-backdrop" role="presentation" onMouseDown={(event) => {
+      if (event.target === event.currentTarget) onClose();
+    }}>
       <section className="cheat-sheet" role="dialog" aria-modal="true" aria-labelledby="cheat-sheet-title">
         <header>
           <div><span>Reference</span><h2 id="cheat-sheet-title">Markdown cheat sheet</h2></div>

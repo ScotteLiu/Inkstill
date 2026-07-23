@@ -186,6 +186,38 @@ describe('atomic file primitives', () => {
     expect(await readFile(join(folder, markerName), 'utf8')).toContain('expectedSha256');
   });
 
+  it('repairs a crash that interrupted the install copy and left a partial target', async () => {
+    const folder = await makeTemporaryFolder();
+    const target = join(folder, 'partial-install.md');
+    const tempName = '.partial-install.md.1234.00000000-0000-4000-8000-000000000007.tmp';
+    const backupName = '.partial-install.md.00000000-0000-4000-8000-000000000008.markdown-editor-backup';
+    const markerName = '.partial-install.md.markdown-editor-transaction.json';
+    const oldBytes = Buffer.from('complete old version', 'utf8');
+    const newBytes = Buffer.from('complete new version', 'utf8');
+    // A crash mid-copy leaves the target holding a byte prefix of the new file.
+    await writeFile(target, newBytes.subarray(0, 11));
+    await writeFile(join(folder, backupName), oldBytes);
+    await writeFile(join(folder, tempName), newBytes);
+    await writeFile(join(folder, markerName), JSON.stringify({
+      version: 1,
+      targetName: 'partial-install.md',
+      tempName,
+      backupName,
+      newSha256: sha256Bytes(newBytes),
+      expectedSha256: sha256Bytes(oldBytes),
+      verifyExpected: true,
+    }), 'utf8');
+
+    await recoverInterruptedWrite(target);
+
+    expect(await readFile(target, 'utf8')).toBe('complete new version');
+    const entries = await readdir(folder);
+    expect(entries).toContain('partial-install.md');
+    expect(entries).not.toContain(tempName);
+    expect(entries).not.toContain(backupName);
+    expect(entries).not.toContain(markerName);
+  });
+
   it('does not recover from a backup whose hash differs from expected and preserves state', async () => {
     const folder = await makeTemporaryFolder();
     const target = join(folder, 'backup-conflict.md');

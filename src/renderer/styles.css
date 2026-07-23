@@ -17,6 +17,8 @@
   --active-line: rgba(39, 65, 57, 0.035);
   --code-bg: rgba(49, 58, 54, 0.055);
   --code-ink: #9d4f3b;
+  --code-keyword: #98633f;
+  --code-symbol: #7f5794;
   --syntax: #925c3d;
   --danger: #9f4a3f;
   --danger-bg: #f5e8e3;
@@ -48,6 +50,8 @@
     --active-line: rgba(220, 235, 226, 0.025);
     --code-bg: rgba(255, 255, 255, 0.045);
     --code-ink: #e09b82;
+    --code-keyword: #cfa07d;
+    --code-symbol: #b79ccb;
     --syntax: #d5a277;
     --danger: #e6a095;
     --danger-bg: #442d2a;
@@ -74,6 +78,8 @@
   --active-line: rgba(220, 235, 226, 0.025);
   --code-bg: rgba(255, 255, 255, 0.045);
   --code-ink: #e09b82;
+  --code-keyword: #cfa07d;
+  --code-symbol: #b79ccb;
   --syntax: #d5a277;
   --danger: #e6a095;
   --danger-bg: #442d2a;
@@ -152,6 +158,38 @@ button:focus-visible,
 
 .editor-host .cm-editor.cm-focused {
   box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 58%, transparent);
+}
+
+/* CodeMirror panel controls keep their light base gradient regardless of the
+   app theme, so restyle them with theme variables for dark-mode readability. */
+.editor-host .cm-panel button.cm-button {
+  padding: 4px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background-image: none;
+  background-color: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.editor-host .cm-panel button.cm-button:hover {
+  background-color: var(--accent-wash);
+}
+
+.editor-host .cm-panel .cm-textfield {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background-color: var(--surface);
+  color: var(--ink);
+}
+
+.editor-host .cm-panel label {
+  color: var(--ink-muted);
+}
+
+.editor-host .cm-panel button[name='close'] {
+  color: var(--ink-muted);
 }
 
 .brand,
@@ -1214,8 +1252,11 @@ kbd {
   font-size: 12px;
 }
 
+/* The alert stack must stay in the flow even when empty: the workspace grid
+   assigns rows positionally, so hiding it shifts the editor into the auto row
+   and stretches the status bar into the 1fr row. */
 .alert-stack:empty {
-  display: none;
+  min-height: 0;
 }
 
 .safety-banner {
@@ -1391,7 +1432,7 @@ kbd {
 .markdown-preview .hljs-literal,
 .markdown-preview .hljs-section,
 .markdown-preview .hljs-link {
-  color: #98633f;
+  color: var(--code-keyword);
 }
 
 .markdown-preview .hljs-string,
@@ -1409,7 +1450,7 @@ kbd {
 .markdown-preview .hljs-built_in,
 .markdown-preview .hljs-variable,
 .markdown-preview .hljs-template-variable {
-  color: #7f5794;
+  color: var(--code-symbol);
 }
 
 .markdown-preview .hljs-comment,
