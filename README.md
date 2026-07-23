@@ -23,7 +23,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/ScotteLiu/Inkstill/releases/download/v1.1.1-preview.1/Inkstill-1.1.1.Setup.exe"><img src="https://img.shields.io/badge/Download-Windows_x64-1f6f5f?style=for-the-badge&logo=windows" alt="Download Inkstill for Windows"></a>
+  <a href="https://github.com/ScotteLiu/Inkstill/releases/download/v1.1.2-preview.1/Inkstill-1.1.2.Setup.exe"><img src="https://img.shields.io/badge/Download-Windows_x64-1f6f5f?style=for-the-badge&logo=windows" alt="Download Inkstill for Windows"></a>
 </p>
 
 ![Inkstill split editor and rendered Markdown preview](docs/images/inkstill-split-preview.png)
@@ -75,9 +75,9 @@ notes into a navigable workspace.
 
 Direct downloads:
 
-- [Windows x64 installer](https://github.com/ScotteLiu/Inkstill/releases/download/v1.1.1-preview.1/Inkstill-1.1.1.Setup.exe)
-- [Portable Windows x64 ZIP](https://github.com/ScotteLiu/Inkstill/releases/download/v1.1.1-preview.1/Inkstill-win32-x64-1.1.1.zip) — extract and run `Inkstill.exe`.
-- [SHA-256 checksums](https://github.com/ScotteLiu/Inkstill/releases/download/v1.1.1-preview.1/SHA256SUMS.txt)
+- [Windows x64 installer](https://github.com/ScotteLiu/Inkstill/releases/download/v1.1.2-preview.1/Inkstill-1.1.2.Setup.exe)
+- [Portable Windows x64 ZIP](https://github.com/ScotteLiu/Inkstill/releases/download/v1.1.2-preview.1/Inkstill-win32-x64-1.1.2.zip) — extract and run `Inkstill.exe`.
+- [SHA-256 checksums](https://github.com/ScotteLiu/Inkstill/releases/download/v1.1.2-preview.1/SHA256SUMS.txt)
 
 macOS (Intel and Apple silicon) and Linux x64 packages are now built and tested by
 the cross-platform candidate pipeline. They will become direct Release downloads

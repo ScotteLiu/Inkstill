@@ -510,7 +510,7 @@ button:focus-visible,
   grid-template-rows: 52px auto auto minmax(0, 1fr) 36px;
   min-width: 0;
   min-height: 0;
-  margin: 8px 8px 8px 0;
+  margin: 8px;
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 12px;
@@ -2203,7 +2203,7 @@ kbd {
 
   .workspace {
     grid-template-rows: auto auto auto minmax(0, 1fr) 34px;
-    margin: 4px 4px 4px 0;
+    margin: 4px;
     border-radius: 8px;
   }
 

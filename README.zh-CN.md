@@ -23,7 +23,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/ScotteLiu/Inkstill/releases/download/v1.1.1-preview.1/Inkstill-1.1.1.Setup.exe"><img src="https://img.shields.io/badge/下载-Windows_x64-1f6f5f?style=for-the-badge&logo=windows" alt="下载 Inkstill Windows 版"></a>
+  <a href="https://github.com/ScotteLiu/Inkstill/releases/download/v1.1.2-preview.1/Inkstill-1.1.2.Setup.exe"><img src="https://img.shields.io/badge/下载-Windows_x64-1f6f5f?style=for-the-badge&logo=windows" alt="下载 Inkstill Windows 版"></a>
 </p>
 
 ![Inkstill 分屏编辑与 Markdown 预览](docs/images/inkstill-split-preview.png)
@@ -74,9 +74,9 @@ Inkstill 在输入时保持 Markdown 清晰可读，需要时再呈现精致预�
 
 直接下载：
 
-- [Windows x64 安装版](https://github.com/ScotteLiu/Inkstill/releases/download/v1.1.1-preview.1/Inkstill-1.1.1.Setup.exe)
-- [Windows x64 免安装 ZIP](https://github.com/ScotteLiu/Inkstill/releases/download/v1.1.1-preview.1/Inkstill-win32-x64-1.1.1.zip)：解压后运行 `Inkstill.exe`。
-- [SHA-256 校验码](https://github.com/ScotteLiu/Inkstill/releases/download/v1.1.1-preview.1/SHA256SUMS.txt)
+- [Windows x64 安装版](https://github.com/ScotteLiu/Inkstill/releases/download/v1.1.2-preview.1/Inkstill-1.1.2.Setup.exe)
+- [Windows x64 免安装 ZIP](https://github.com/ScotteLiu/Inkstill/releases/download/v1.1.2-preview.1/Inkstill-win32-x64-1.1.2.zip)：解压后运行 `Inkstill.exe`。
+- [SHA-256 校验码](https://github.com/ScotteLiu/Inkstill/releases/download/v1.1.2-preview.1/SHA256SUMS.txt)
 
 macOS（Intel 与 Apple 芯片）和 Linux x64 安装包现已进入跨平台候选构建与
 测试流程。完成原生硬件验证后，它们会随下一预览版提供 Release 直接下载。
