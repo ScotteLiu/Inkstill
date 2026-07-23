@@ -94,6 +94,68 @@ img {
   color: var(--green);
 }
 
+.language-menu {
+  position: relative;
+}
+
+.language-menu summary {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  color: var(--ink);
+  background: rgba(255, 253, 248, 0.72);
+  cursor: pointer;
+  font-weight: 650;
+  list-style: none;
+}
+
+.language-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.language-menu summary::after {
+  content: "⌄";
+  color: var(--muted);
+  font-size: 0.8rem;
+  transform: translateY(-1px);
+}
+
+.language-menu[open] summary,
+.language-menu summary:hover,
+.language-menu summary:focus-visible {
+  border-color: rgba(31, 111, 95, 0.36);
+  color: var(--green);
+}
+
+.language-options {
+  position: absolute;
+  top: calc(100% + 9px);
+  right: 0;
+  width: max-content;
+  min-width: 148px;
+  padding: 7px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--paper);
+  box-shadow: 0 16px 42px rgba(24, 55, 48, 0.16);
+}
+
+.language-options a {
+  display: block;
+  padding: 8px 10px;
+  border-radius: 7px;
+}
+
+.language-options a:hover,
+.language-options a:focus-visible,
+.language-options a[aria-current="page"] {
+  color: var(--green);
+  background: rgba(31, 111, 95, 0.08);
+}
+
 .hero {
   padding: 106px 0 72px;
   text-align: center;
@@ -235,6 +297,16 @@ h2 {
   font-size: clamp(2.25rem, 4.5vw, 4.15rem);
   font-weight: 500;
   line-height: 1.04;
+  letter-spacing: -0.045em;
+}
+
+html:lang(zh-CN) h1,
+html:lang(zh-CN) h2,
+html:lang(zh-Hant-TW) h1,
+html:lang(zh-Hant-TW) h2,
+html:lang(hi) h1,
+html:lang(hi) h2 {
+  font-family: "Noto Serif CJK TC", "Noto Serif CJK JP", "Noto Serif CJK KR", "Microsoft JhengHei", "Yu Mincho", serif;
   letter-spacing: -0.045em;
 }
 
@@ -433,7 +505,7 @@ footer {
 }
 
 @media (max-width: 840px) {
-  .nav-links a:not(.language-link) {
+  .nav-links > a {
     display: none;
   }
 
@@ -506,6 +578,10 @@ footer {
 
   .footer-inner {
     flex-direction: column;
+  }
+
+  .footer-links {
+    flex-wrap: wrap;
   }
 }
 
