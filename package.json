@@ -2,7 +2,7 @@
   "name": "markdown-editor",
   "productName": "Inkstill",
   "version": "1.1.0",
-  "description": "A calm, local-first Markdown workspace for Windows.",
+  "description": "A calm, local-first Markdown workspace for Windows, macOS, and Linux.",
   "author": "Scotte Liu",
   "license": "MIT",
   "homepage": "https://github.com/ScotteLiu/Inkstill#readme",
@@ -65,6 +65,9 @@
   },
   "devDependencies": {
     "@electron-forge/cli": "7.11.2",
+    "@electron-forge/maker-deb": "7.11.2",
+    "@electron-forge/maker-dmg": "7.11.2",
+    "@electron-forge/maker-rpm": "7.11.2",
     "@electron-forge/maker-squirrel": "7.11.2",
     "@electron-forge/maker-zip": "7.11.2",
     "@electron-forge/plugin-fuses": "7.11.2",
@@ -77,6 +80,7 @@
     "@vitejs/plugin-react": "6.0.3",
     "electron": "43.1.0",
     "jsdom": "29.1.1",
+    "lodash": "4.18.1",
     "typescript": "7.0.2",
     "vite": "8.1.4",
     "vitest": "4.1.10"

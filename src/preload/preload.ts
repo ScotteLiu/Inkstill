@@ -7,6 +7,7 @@ import {
   documentContentRequestSchema,
   documentIdRequestSchema,
   documentSnapshotSchema,
+  desktopPlatformSchema,
   discardCloseRequestSchema,
   externalChangeEventSchema,
   exportContentRequestSchema,
@@ -35,6 +36,7 @@ import {
 } from '../shared/contracts';
 
 const api: DesktopApi = {
+  platform: desktopPlatformSchema.parse(process.platform),
   async createDocument(request) {
     const result = await ipcRenderer.invoke(
       IPC.createDocument,
@@ -201,12 +203,25 @@ const api: DesktopApi = {
     const result = await ipcRenderer.invoke(IPC.restoreSession);
     return z.array(documentSnapshotSchema).max(12).parse(result);
   },
+  rendererReady() {
+    ipcRenderer.send(IPC.rendererReady);
+  },
+  acknowledgeSystemOpen() {
+    ipcRenderer.send(IPC.systemOpenHandled);
+  },
   onMenuCommand(listener) {
     const wrapped = (_event: Electron.IpcRendererEvent, value: unknown): void => {
       listener(menuCommandSchema.parse(value));
     };
     ipcRenderer.on(IPC.menuCommand, wrapped);
     return () => ipcRenderer.removeListener(IPC.menuCommand, wrapped);
+  },
+  onSystemOpenDocument(listener) {
+    const wrapped = (_event: Electron.IpcRendererEvent, value: unknown): void => {
+      listener(documentSnapshotSchema.parse(value));
+    };
+    ipcRenderer.on(IPC.systemOpenDocument, wrapped);
+    return () => ipcRenderer.removeListener(IPC.systemOpenDocument, wrapped);
   },
   onExternalChange(listener) {
     const wrapped = (_event: Electron.IpcRendererEvent, value: unknown): void => {

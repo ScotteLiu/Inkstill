@@ -172,6 +172,7 @@ test('launches a sandboxed editor and keeps Markdown editable', async () => {
     expect(rendererGlobals.nodeRequire).toBe('undefined');
     expect(rendererGlobals.nodeProcess).toBe('undefined');
     expect(rendererGlobals.desktopMethods).toEqual([
+      'acknowledgeSystemOpen',
       'closeDocument',
       'completeDiscardClose',
       'confirmUnsavedChanges',
@@ -186,14 +187,17 @@ test('launches a sandboxed editor and keeps Markdown editable', async () => {
       'markEdited',
       'onExternalChange',
       'onMenuCommand',
+      'onSystemOpenDocument',
       'openDocument',
       'openExternal',
       'openWorkspace',
       'openWorkspaceFile',
       'pasteImage',
+      'platform',
       'readLocalAsset',
       'refreshWorkspace',
       'reloadDocument',
+      'rendererReady',
       'restoreRecovery',
       'restoreSession',
       'saveDocument',

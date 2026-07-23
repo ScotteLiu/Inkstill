@@ -1,0 +1,83 @@
+name: macOS and Linux candidate gate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CI: 'true'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .node-version
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+        with:
+          version: 11.9.0
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm verify:source
+
+  build-platform:
+    needs: verify-source
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-14
+            platform: darwin
+            arch: x64
+            label: macos-intel
+          - runner: macos-14
+            platform: darwin
+            arch: arm64
+            label: macos-apple-silicon
+          - runner: ubuntu-24.04
+            platform: linux
+            arch: x64
+            label: linux-x64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 35
+    env:
+      CI: 'true'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .node-version
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+        with:
+          version: 11.9.0
+      - name: Install Linux packaging tools
+        if: matrix.platform == 'linux'
+        run: sudo apt-get update && sudo apt-get install --yes fakeroot rpm xvfb
+      - run: pnpm install --frozen-lockfile
+      - name: Exercise the application on macOS
+        if: matrix.platform == 'darwin' && matrix.arch == 'x64'
+        run: pnpm test:e2e
+      - name: Exercise the application on Linux
+        if: matrix.platform == 'linux'
+        run: xvfb-run --auto-servernum pnpm test:e2e
+      - name: Build native packages
+        run: pnpm make --platform=${{ matrix.platform }} --arch=${{ matrix.arch }}
+      - name: Validate native packages
+        run: node scripts/platform-artifact-gate.mjs --platform ${{ matrix.platform }} --arch ${{ matrix.arch }}
+      - name: Validate macOS bundle metadata
+        if: matrix.platform == 'darwin'
+        run: plutil -lint "out/Inkstill-darwin-${{ matrix.arch }}/Inkstill.app/Contents/Info.plist"
+      - name: Upload platform candidate
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: inkstill-${{ matrix.label }}-${{ github.sha }}
+          if-no-files-found: error
+          path: |
+            out/make/**
+            release/**

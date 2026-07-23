@@ -189,7 +189,11 @@ if (
   process.env.MARKDOWN_EDITOR_USER_DATA_DIR
 ) {
   app.setPath('userData', process.env.MARKDOWN_EDITOR_USER_DATA_DIR);
-} else if (app.isPackaged && !app.commandLine.hasSwitch('user-data-dir')) {
+} else if (
+  app.isPackaged &&
+  process.platform === 'win32' &&
+  !app.commandLine.hasSwitch('user-data-dir')
+) {
   // Keep existing drafts available after the public product name changes.
   app.setPath('userData', resolve(app.getPath('appData'), 'Markdown Editor'));
 }
@@ -208,6 +212,9 @@ let discardClosePending = false;
 let shutdownInProgress = false;
 let shutdownComplete = false;
 let windowCleanup: Promise<void> | null = null;
+let rendererReady = false;
+let systemOpenInFlight = false;
+const pendingSystemOpenPaths: string[] = [];
 
 const devServerUrl = MAIN_WINDOW_VITE_DEV_SERVER_URL;
 const isDevelopment = Boolean(devServerUrl);
@@ -229,9 +236,63 @@ function sendMenuCommand(command: MenuCommand): void {
   mainWindow.webContents.send(IPC.menuCommand, menuCommandSchema.parse(command));
 }
 
+const supportedDocumentExtensions = new Set(['.md', '.markdown', '.txt']);
+
+function queueSystemOpenPath(candidate: string): void {
+  if (!candidate || candidate.startsWith('-')) return;
+  const target = resolve(candidate);
+  if (!supportedDocumentExtensions.has(extname(target).toLocaleLowerCase('en-US'))) return;
+  if (!pendingSystemOpenPaths.includes(target)) pendingSystemOpenPaths.push(target);
+}
+
+function queueSystemOpenArguments(commandLine: string[]): void {
+  for (const argument of commandLine) queueSystemOpenPath(argument);
+}
+
+async function dispatchNextSystemOpen(): Promise<void> {
+  if (
+    !rendererReady ||
+    systemOpenInFlight ||
+    !documentService ||
+    !mainWindow ||
+    mainWindow.isDestroyed()
+  ) return;
+
+  const target = pendingSystemOpenPaths.shift();
+  if (!target) return;
+  try {
+    const document = await documentService.openDocumentPath(target);
+    if (!mainWindow || mainWindow.isDestroyed()) {
+      pendingSystemOpenPaths.unshift(target);
+      return;
+    }
+    systemOpenInFlight = true;
+    mainWindow.webContents.send(IPC.systemOpenDocument, document);
+  } catch (error) {
+    console.error(`Unable to open ${target}`, error);
+    void dispatchNextSystemOpen();
+  }
+}
+
 function buildApplicationMenu(): void {
   const modifier = process.platform === 'darwin' ? 'Cmd' : 'Ctrl';
   const template: Electron.MenuItemConstructorOptions[] = [
+    ...(process.platform === 'darwin'
+      ? [{
+          label: app.name,
+          submenu: [
+            { role: 'about' },
+            { type: 'separator' },
+            { role: 'services' },
+            { type: 'separator' },
+            { role: 'hide' },
+            { role: 'hideOthers' },
+            { role: 'unhide' },
+            { type: 'separator' },
+            { role: 'quit' },
+          ],
+        } satisfies Electron.MenuItemConstructorOptions]
+      : []),
     {
       label: 'File',
       submenu: [
@@ -246,8 +307,12 @@ function buildApplicationMenu(): void {
         { label: 'Export HTML…', click: () => sendMenuCommand('export-html') },
         { label: 'Export PDF…', accelerator: `${modifier}+Shift+E`, click: () => sendMenuCommand('export-pdf') },
         { label: 'Copy as HTML', click: () => sendMenuCommand('copy-html') },
-        { type: 'separator' },
-        { role: 'quit', label: 'Exit' },
+        ...(process.platform === 'darwin'
+          ? []
+          : [
+              { type: 'separator' as const },
+              { role: 'quit' as const, label: 'Exit' },
+            ]),
       ],
     },
     {
@@ -294,6 +359,17 @@ function buildApplicationMenu(): void {
         { label: 'Table…', accelerator: `${modifier}+T`, click: () => sendMenuCommand('insert-table') },
       ],
     },
+    ...(process.platform === 'darwin'
+      ? [{
+          label: 'Window',
+          submenu: [
+            { role: 'minimize' },
+            { role: 'zoom' },
+            { type: 'separator' },
+            { role: 'front' },
+          ],
+        } satisfies Electron.MenuItemConstructorOptions]
+      : []),
     {
       label: 'Help',
       submenu: [
@@ -352,6 +428,16 @@ function registerIpc(): void {
   ipcMain.handle(IPC.openDocument, (event) => {
     assertExpectedRenderer(event);
     return service.openDocument();
+  });
+  ipcMain.on(IPC.rendererReady, (event) => {
+    assertExpectedRenderer(event);
+    rendererReady = true;
+    void dispatchNextSystemOpen();
+  });
+  ipcMain.on(IPC.systemOpenHandled, (event) => {
+    assertExpectedRenderer(event);
+    systemOpenInFlight = false;
+    void dispatchNextSystemOpen();
   });
   ipcMain.handle(IPC.closeDocument, (event, raw) => {
     assertExpectedRenderer(event);
@@ -696,6 +782,8 @@ async function createMainWindow(): Promise<void> {
   closePromptOpen = false;
   closeAfterSave = false;
   discardClosePending = false;
+  rendererReady = false;
+  systemOpenInFlight = false;
   if (process.platform === 'darwin' && !quitRequested) {
     allowApplicationQuit = false;
   }
@@ -707,6 +795,9 @@ async function createMainWindow(): Promise<void> {
     minHeight: 560,
     show: false,
     backgroundColor: '#f5f2ea',
+    ...(process.platform === 'linux'
+      ? { icon: resolve(app.getAppPath(), 'assets/icon.png') }
+      : {}),
     webPreferences: {
       preload: resolve(__dirname, 'preload.js'),
       nodeIntegration: false,
@@ -764,6 +855,8 @@ async function createMainWindow(): Promise<void> {
   });
   mainWindow.on('closed', () => {
     mainWindow = null;
+    rendererReady = false;
+    systemOpenInFlight = false;
     closeAfterSave = false;
     discardClosePending = false;
     if (process.platform === 'darwin' && !quitRequested) {
@@ -788,11 +881,31 @@ app.on('web-contents-created', (_event, contents) => {
 const hasSingleInstanceLock = squirrelStartupHandled || app.requestSingleInstanceLock();
 if (!squirrelStartupHandled) {
   if (!hasSingleInstanceLock) app.quit();
-  app.on('second-instance', () => {
-    if (!mainWindow) return;
-    if (mainWindow.isMinimized()) mainWindow.restore();
-    mainWindow.show();
-    mainWindow.focus();
+  app.on('second-instance', (_event, commandLine) => {
+    queueSystemOpenArguments(commandLine);
+    if (!app.isReady() || !documentService) return;
+    void (async () => {
+      await windowCleanup;
+      if (!mainWindow) await createMainWindow();
+      if (!mainWindow) return;
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.show();
+      mainWindow.focus();
+      void dispatchNextSystemOpen();
+    })();
+  });
+}
+
+if (!squirrelStartupHandled) {
+  app.on('open-file', (event, path) => {
+    event.preventDefault();
+    queueSystemOpenPath(path);
+    if (!app.isReady() || !documentService) return;
+    void (async () => {
+      await windowCleanup;
+      if (!mainWindow) await createMainWindow();
+      void dispatchNextSystemOpen();
+    })();
   });
 }
 
@@ -808,6 +921,8 @@ if (!squirrelStartupHandled && hasSingleInstanceLock) void app.whenReady().then(
   registerIpc();
   buildApplicationMenu();
   await createMainWindow();
+  queueSystemOpenArguments(process.argv.slice(app.isPackaged ? 1 : 2));
+  void dispatchNextSystemOpen();
 
   app.on('activate', () => {
     void (async () => {

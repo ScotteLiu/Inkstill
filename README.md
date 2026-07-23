@@ -7,7 +7,7 @@
 <p align="center"><strong>Write quietly. Keep your files yours.</strong></p>
 
 <p align="center">
-  A calm, local-first Markdown workspace for Windows.<br>
+  A calm, local-first Markdown workspace for Windows, macOS, and Linux.<br>
   Beautiful writing, connected notes, and ordinary Markdown files—without an account.
 </p>
 
@@ -17,6 +17,7 @@
 
 <p align="center">
   <a href="https://github.com/ScotteLiu/Inkstill/actions/workflows/windows-candidate.yml"><img src="https://github.com/ScotteLiu/Inkstill/actions/workflows/windows-candidate.yml/badge.svg" alt="Windows CI"></a>
+  <a href="https://github.com/ScotteLiu/Inkstill/actions/workflows/cross-platform-candidate.yml"><img src="https://github.com/ScotteLiu/Inkstill/actions/workflows/cross-platform-candidate.yml/badge.svg" alt="macOS and Linux CI"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-d7a83e.svg" alt="MIT License"></a>
   <a href="https://github.com/ScotteLiu/Inkstill/releases"><img src="https://img.shields.io/github/v/release/ScotteLiu/Inkstill?include_prereleases&label=preview&color=1f6f5f" alt="Latest preview"></a>
 </p>
@@ -78,6 +79,10 @@ Direct downloads:
 - [Portable Windows x64 ZIP](https://github.com/ScotteLiu/Inkstill/releases/download/v1.1.0-preview.1/Inkstill-win32-x64-1.1.0.zip) — extract and run `Inkstill.exe`.
 - [SHA-256 checksums](https://github.com/ScotteLiu/Inkstill/releases/download/v1.1.0-preview.1/SHA256SUMS.txt)
 
+macOS (Intel and Apple silicon) and Linux x64 packages are now built and tested by
+the cross-platform candidate pipeline. They will become direct Release downloads
+with the next preview after native validation. See [platform support](docs/PLATFORM_SUPPORT.md).
+
 > **Preview notice:** Current binaries are not yet Authenticode-signed, so Windows
 > may show a SmartScreen warning. Source, locked dependencies, SBOM, third-party
 > licenses, build manifest, and checksums are published for inspection.
@@ -100,14 +105,14 @@ Direct downloads:
 
 Use Node 24.14.0 and pnpm 11.9.0:
 
-```powershell
+```sh
 pnpm install --frozen-lockfile
 pnpm start
 ```
 
 Run all source, security, packaged-app, and runtime checks:
 
-```powershell
+```sh
 pnpm verify
 ```
 
@@ -116,10 +121,11 @@ privately according to [SECURITY.md](SECURITY.md), not in a public issue.
 
 ## Current scope
 
-Inkstill is a Windows x64 preview. macOS and Linux builds need their own packaging,
-IME, lifecycle, signing, and hardware validation. Cloud sync, real-time
-collaboration, hosted publishing, and online AI accounts are not represented as
-features of this local editor.
+Inkstill supports Windows x64, macOS Intel/Apple silicon, and Linux x64 at the
+source and native-package candidate level. The current public Release remains
+Windows-only while unsigned macOS/Linux candidates complete hardware validation.
+Cloud sync, real-time collaboration, hosted publishing, and online AI accounts
+are not represented as features of this local editor.
 
 ## License and credits
 

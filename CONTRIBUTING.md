@@ -11,22 +11,23 @@ Thank you for helping improve Inkstill.
 
 ## Development setup
 
-Inkstill currently targets Windows x64. Use Node 24.14.0 and pnpm 11.9.0.
+Inkstill targets Windows x64, macOS Intel/Apple silicon, and Linux x64. Use
+Node 24.14.0 and pnpm 11.9.0.
 
-```powershell
+```sh
 pnpm install --frozen-lockfile
 pnpm start
 ```
 
 Before submitting a pull request:
 
-```powershell
+```sh
 pnpm verify:source
 ```
 
 For changes that affect packaged Electron behavior:
 
-```powershell
+```sh
 pnpm verify
 ```
 

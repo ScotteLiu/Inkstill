@@ -339,6 +339,8 @@ function ConflictReview({
 }
 
 export default function App(): React.JSX.Element {
+  const shortcutModifier = window.desktop.platform === 'darwin' ? '⌘' : 'Ctrl';
+  const optionModifier = window.desktop.platform === 'darwin' ? '⌥' : 'Alt';
   const editorRef = useRef<MarkdownEditorHandle>(null);
   const currentDocumentRef = useRef<DocumentSnapshot | null>(null);
   const tabsRef = useRef(new Map<string, OpenDocumentTab>());
@@ -1360,6 +1362,27 @@ export default function App(): React.JSX.Element {
     }
 
     const removeMenu = window.desktop.onMenuCommand((command) => commandHandlerRef.current(command));
+    let systemOpenChain = Promise.resolve();
+    const removeSystemOpen = window.desktop.onSystemOpenDocument((next) => {
+      systemOpenChain = systemOpenChain.then(async () => {
+        while (transitioningRef.current) {
+          await new Promise<void>((resolve) => window.setTimeout(resolve, 50));
+        }
+        if (!beginTransition()) {
+          window.desktop.acknowledgeSystemOpen();
+          return;
+        }
+        try {
+          if (!(await prepareForDocumentChange())) return;
+          await activateDocument(next, { status: `Opened ${next.displayName}` });
+        } catch (error) {
+          setStatus(error instanceof Error ? error.message : 'Unable to open document');
+        } finally {
+          endTransition();
+          window.desktop.acknowledgeSystemOpen();
+        }
+      });
+    });
     const removeExternal = window.desktop.onExternalChange((event) => {
       externalChangesRef.current.set(event.documentId, event);
       syncTabs();
@@ -1370,11 +1393,20 @@ export default function App(): React.JSX.Element {
         setStatus('A background tab was modified by another application');
       }
     });
+    window.desktop.rendererReady();
     return () => {
       removeMenu();
+      removeSystemOpen();
       removeExternal();
     };
-  }, [activateDocument, createInitialDocument, syncTabs]);
+  }, [
+    activateDocument,
+    beginTransition,
+    createInitialDocument,
+    endTransition,
+    prepareForDocumentChange,
+    syncTabs,
+  ]);
 
   useEffect(() => () => {
     if (analysisTimerRef.current !== null) {
@@ -1534,11 +1566,11 @@ export default function App(): React.JSX.Element {
   }, [blockedSave, saveDocument]);
 
   const paletteCommands = useMemo<PaletteCommand[]>(() => [
-    { id: 'new', label: 'New document', detail: 'Create a blank Markdown document', shortcut: 'Ctrl+N', keywords: 'file', run: () => void createNew() },
-    { id: 'open', label: 'Open file', detail: 'Open a Markdown file from disk', shortcut: 'Ctrl+O', keywords: 'file', run: () => void openDocument() },
-    { id: 'open-folder', label: 'Open folder', detail: 'Browse and search a Markdown workspace', shortcut: 'Ctrl+Shift+O', keywords: 'workspace project', run: () => void openWorkspace() },
+    { id: 'new', label: 'New document', detail: 'Create a blank Markdown document', shortcut: `${shortcutModifier}+N`, keywords: 'file', run: () => void createNew() },
+    { id: 'open', label: 'Open file', detail: 'Open a Markdown file from disk', shortcut: `${shortcutModifier}+O`, keywords: 'file', run: () => void openDocument() },
+    { id: 'open-folder', label: 'Open folder', detail: 'Browse and search a Markdown workspace', shortcut: `${shortcutModifier}+Shift+O`, keywords: 'workspace project', run: () => void openWorkspace() },
     { id: 'refresh-folder', label: 'Refresh folder', detail: 'Rescan the current workspace', keywords: 'workspace project', run: () => void refreshWorkspace() },
-    { id: 'find-folder', label: 'Find in folder', detail: 'Search every Markdown file in the workspace', shortcut: 'Ctrl+Shift+F', keywords: 'workspace search', run: () => {
+    { id: 'find-folder', label: 'Find in folder', detail: 'Search every Markdown file in the workspace', shortcut: `${shortcutModifier}+Shift+F`, keywords: 'workspace search', run: () => {
       setSidebarPanel('files');
       window.requestAnimationFrame(() => workspaceSearchRef.current?.focus());
     } },
@@ -1549,29 +1581,29 @@ export default function App(): React.JSX.Element {
       keywords: `quick open file ${file.relativePath}`,
       run: () => void openWorkspaceFile(file.relativePath),
     })) ?? []),
-    { id: 'save', label: 'Save', detail: 'Save the current document', shortcut: 'Ctrl+S', keywords: 'file', run: () => void saveDocument(false) },
-    { id: 'save-as', label: 'Save as', detail: 'Save to a different file', shortcut: 'Ctrl+Shift+S', keywords: 'file', run: () => void saveDocument(true) },
+    { id: 'save', label: 'Save', detail: 'Save the current document', shortcut: `${shortcutModifier}+S`, keywords: 'file', run: () => void saveDocument(false) },
+    { id: 'save-as', label: 'Save as', detail: 'Save to a different file', shortcut: `${shortcutModifier}+Shift+S`, keywords: 'file', run: () => void saveDocument(true) },
     { id: 'export-html', label: 'Export HTML', detail: 'Create a standalone rendered HTML file', keywords: 'share output', run: () => void exportHtml() },
-    { id: 'export-pdf', label: 'Export PDF', detail: 'Create a print-ready PDF', shortcut: 'Ctrl+Shift+E', keywords: 'share output print', run: () => void exportPdf() },
+    { id: 'export-pdf', label: 'Export PDF', detail: 'Create a print-ready PDF', shortcut: `${shortcutModifier}+Shift+E`, keywords: 'share output print', run: () => void exportPdf() },
     { id: 'copy-html', label: 'Copy as HTML', detail: 'Copy rendered HTML to the clipboard', keywords: 'share clipboard', run: () => void copyHtml() },
-    { id: 'find', label: 'Find and replace', detail: 'Search within the current document', shortcut: 'Ctrl+F', keywords: 'search', run: () => editorRef.current?.openSearch() },
-    { id: 'view-editor', label: 'Editor view', detail: 'Show only the editor', shortcut: 'Ctrl+1', keywords: 'write', run: () => changeWorkspaceView('editor') },
-    { id: 'view-split', label: 'Split preview', detail: 'Edit and preview side by side', shortcut: 'Ctrl+2', keywords: 'view render', run: () => changeWorkspaceView('split') },
-    { id: 'view-preview', label: 'Preview', detail: 'Show rendered Markdown', shortcut: 'Ctrl+3', keywords: 'view read render', run: () => changeWorkspaceView('preview') },
-    { id: 'source', label: 'Toggle source mode', detail: 'Show or hide Markdown punctuation', shortcut: 'Ctrl+/', keywords: 'view markdown', run: toggleSourceMode },
+    { id: 'find', label: 'Find and replace', detail: 'Search within the current document', shortcut: `${shortcutModifier}+F`, keywords: 'search', run: () => editorRef.current?.openSearch() },
+    { id: 'view-editor', label: 'Editor view', detail: 'Show only the editor', shortcut: `${shortcutModifier}+1`, keywords: 'write', run: () => changeWorkspaceView('editor') },
+    { id: 'view-split', label: 'Split preview', detail: 'Edit and preview side by side', shortcut: `${shortcutModifier}+2`, keywords: 'view render', run: () => changeWorkspaceView('split') },
+    { id: 'view-preview', label: 'Preview', detail: 'Show rendered Markdown', shortcut: `${shortcutModifier}+3`, keywords: 'view read render', run: () => changeWorkspaceView('preview') },
+    { id: 'source', label: 'Toggle source mode', detail: 'Show or hide Markdown punctuation', shortcut: `${shortcutModifier}+/`, keywords: 'view markdown', run: toggleSourceMode },
     ...([1, 2, 3, 4, 5, 6] as const).map((level): PaletteCommand => ({
       id: `heading-${level}`,
       label: `Heading ${level}`,
       detail: `Convert the current line to H${level}`,
-      shortcut: `Ctrl+Alt+${level}`,
+      shortcut: `${shortcutModifier}+${optionModifier}+${level}`,
       keywords: 'format title',
       run: () => runEditorAction(() => editorRef.current?.setHeading(level)),
     })),
-    { id: 'bold', label: 'Bold', detail: 'Wrap the selection in bold markers', shortcut: 'Ctrl+B', keywords: 'format', run: () => runEditorAction(() => editorRef.current?.wrapSelection('**', '**')) },
-    { id: 'italic', label: 'Italic', detail: 'Wrap the selection in emphasis markers', shortcut: 'Ctrl+I', keywords: 'format', run: () => runEditorAction(() => editorRef.current?.wrapSelection('*', '*')) },
+    { id: 'bold', label: 'Bold', detail: 'Wrap the selection in bold markers', shortcut: `${shortcutModifier}+B`, keywords: 'format', run: () => runEditorAction(() => editorRef.current?.wrapSelection('**', '**')) },
+    { id: 'italic', label: 'Italic', detail: 'Wrap the selection in emphasis markers', shortcut: `${shortcutModifier}+I`, keywords: 'format', run: () => runEditorAction(() => editorRef.current?.wrapSelection('*', '*')) },
     { id: 'strike', label: 'Strikethrough', detail: 'Strike the selected text', keywords: 'format delete', run: () => runEditorAction(() => editorRef.current?.wrapSelection('~~', '~~')) },
     { id: 'highlight', label: 'Highlight', detail: 'Highlight the selected text', keywords: 'format mark', run: () => runEditorAction(() => editorRef.current?.wrapSelection('==', '==')) },
-    { id: 'link', label: 'Insert link', detail: 'Insert a Markdown link', shortcut: 'Ctrl+K', keywords: 'url', run: () => runEditorAction(() => editorRef.current?.wrapSelection('[', '](https://)', 'link text')) },
+    { id: 'link', label: 'Insert link', detail: 'Insert a Markdown link', shortcut: `${shortcutModifier}+K`, keywords: 'url', run: () => runEditorAction(() => editorRef.current?.wrapSelection('[', '](https://)', 'link text')) },
     { id: 'image', label: 'Insert local image', detail: 'Copy an image beside the document and insert a relative link', keywords: 'asset picture photo', run: () => void importImage() },
     { id: 'paste-image', label: 'Paste clipboard image', detail: 'Save clipboard image data beside the document', keywords: 'asset picture screenshot', run: () => void pasteImage() },
     { id: 'wikilink', label: 'Insert Wiki link', detail: 'Link to another Markdown note', keywords: 'note backlink', run: () => runEditorAction(() => editorRef.current?.wrapSelection('[[', ']]', 'Note')) },
@@ -1581,7 +1613,7 @@ export default function App(): React.JSX.Element {
     { id: 'number-list', label: 'Toggle numbered list', detail: 'Prefix selected lines with numbers', keywords: 'ordered list', run: () => runEditorAction(() => editorRef.current?.prefixLines('1. ')) },
     { id: 'task-list', label: 'Toggle task list', detail: 'Prefix selected lines with checkboxes', keywords: 'todo checkbox', run: () => runEditorAction(() => editorRef.current?.prefixLines('- [ ] ')) },
     { id: 'quote', label: 'Toggle block quote', detail: 'Prefix selected lines as a quotation', keywords: 'format', run: () => runEditorAction(() => editorRef.current?.prefixLines('> ')) },
-    { id: 'table', label: 'Build table', detail: 'Choose columns, rows, headers, and alignment', shortcut: 'Ctrl+T', keywords: 'insert grid', run: () => setTableBuilderOpen(true) },
+    { id: 'table', label: 'Build table', detail: 'Choose columns, rows, headers, and alignment', shortcut: `${shortcutModifier}+T`, keywords: 'insert grid', run: () => setTableBuilderOpen(true) },
     { id: 'footnote', label: 'Insert footnote', detail: 'Insert a footnote reference and definition', keywords: 'reference', run: () => runEditorAction(() => editorRef.current?.insertSnippet('Text[^1]\n\n[^1]: {{cursor}}')) },
     { id: 'math', label: 'Insert math block', detail: 'Insert a KaTeX display equation', keywords: 'equation latex', run: () => runEditorAction(() => editorRef.current?.insertSnippet('$$\n{{cursor}}\n$$')) },
     { id: 'mermaid', label: 'Insert Mermaid diagram', detail: 'Insert a flowchart block', keywords: 'diagram graph', run: () => runEditorAction(() => editorRef.current?.insertSnippet('```mermaid\ngraph TD\n    {{cursor}}A --> B\n```')) },
@@ -1591,7 +1623,7 @@ export default function App(): React.JSX.Element {
     { id: 'hemingway', label: `${editorPreferences.hemingwayMode ? 'Disable' : 'Enable'} Hemingway mode`, detail: 'Disable deletion while drafting', keywords: 'writing', run: () => setEditorPreferences((current) => ({ ...current, hemingwayMode: !current.hemingwayMode })) },
     { id: 'line-numbers', label: `${editorPreferences.lineNumbers ? 'Hide' : 'Show'} line numbers`, detail: 'Toggle editor line numbers', keywords: 'view gutter', run: () => setEditorPreferences((current) => ({ ...current, lineNumbers: !current.lineNumbers })) },
     { id: 'cheat-sheet', label: 'Markdown cheat sheet', detail: 'Show common Markdown syntax', shortcut: 'F1', keywords: 'help reference', run: () => setCheatSheetOpen(true) },
-  ], [changeWorkspaceView, copyHtml, createNew, editorPreferences, exportHtml, exportPdf, importImage, openDocument, openWorkspace, openWorkspaceFile, pasteImage, refreshWorkspace, runEditorAction, saveDocument, toggleSourceMode, workspace]);
+  ], [changeWorkspaceView, copyHtml, createNew, editorPreferences, exportHtml, exportPdf, importImage, openDocument, openWorkspace, openWorkspaceFile, optionModifier, pasteImage, refreshWorkspace, runEditorAction, saveDocument, shortcutModifier, toggleSourceMode, workspace]);
 
   const filteredOutlineHeadings = useMemo(() => {
     const query = outlineQuery.trim().toLocaleLowerCase('en-US');
@@ -1640,9 +1672,9 @@ export default function App(): React.JSX.Element {
         </header>
 
         <div className="file-actions">
-          <button type="button" aria-label="New document" title="New document (Ctrl+N)" disabled={transitioning || saving} onClick={() => void createNew()}>＋ New</button>
-          <button type="button" aria-label="Open document" title="Open document (Ctrl+O)" disabled={transitioning || saving} onClick={() => void openDocument()}>↗ Open</button>
-          <button type="button" aria-label="Open folder" title="Open folder (Ctrl+Shift+O)" disabled={workspaceBusy} onClick={() => void openWorkspace()}>▣ Folder</button>
+          <button type="button" aria-label="New document" title={`New document (${shortcutModifier}+N)`} disabled={transitioning || saving} onClick={() => void createNew()}>＋ New</button>
+          <button type="button" aria-label="Open document" title={`Open document (${shortcutModifier}+O)`} disabled={transitioning || saving} onClick={() => void openDocument()}>↗ Open</button>
+          <button type="button" aria-label="Open folder" title={`Open folder (${shortcutModifier}+Shift+O)`} disabled={workspaceBusy} onClick={() => void openWorkspace()}>▣ Folder</button>
         </div>
 
         {recoveryIndex && recoveryIndex.recoveries.length > 0 && (
@@ -1786,22 +1818,22 @@ export default function App(): React.JSX.Element {
             <ToolbarButton disabled={transitioning || needsEolChoice} label="H1" title="Heading 1" onClick={() => runEditorAction(() => editorRef.current?.setHeading(1))} />
             <ToolbarButton disabled={transitioning || needsEolChoice} label="H2" title="Heading 2" onClick={() => runEditorAction(() => editorRef.current?.setHeading(2))} />
             <span className="toolbar-divider" />
-            <ToolbarButton disabled={transitioning || needsEolChoice} label="B" title="Bold (Ctrl+B)" onClick={() => runEditorAction(() => editorRef.current?.wrapSelection('**', '**'))} />
-            <ToolbarButton disabled={transitioning || needsEolChoice} label="I" title="Italic (Ctrl+I)" onClick={() => runEditorAction(() => editorRef.current?.wrapSelection('*', '*'))} />
+            <ToolbarButton disabled={transitioning || needsEolChoice} label="B" title={`Bold (${shortcutModifier}+B)`} onClick={() => runEditorAction(() => editorRef.current?.wrapSelection('**', '**'))} />
+            <ToolbarButton disabled={transitioning || needsEolChoice} label="I" title={`Italic (${shortcutModifier}+I)`} onClick={() => runEditorAction(() => editorRef.current?.wrapSelection('*', '*'))} />
             <ToolbarButton disabled={transitioning || needsEolChoice} label="↗" title="Insert link" onClick={() => runEditorAction(() => editorRef.current?.wrapSelection('[', '](https://)', 'link text'))} />
             <ToolbarButton disabled={transitioning || needsEolChoice} label="▧" title="Insert local image" onClick={() => void importImage()} />
             <ToolbarButton disabled={transitioning || needsEolChoice} label="‹›" title="Inline code" onClick={() => runEditorAction(() => editorRef.current?.wrapSelection('`', '`', 'code'))} />
           </div>
           <div className="topbar-actions">
             <div className="view-switcher" role="group" aria-label="Workspace view">
-              <button type="button" aria-pressed={workspaceView === 'editor'} title="Editor (Ctrl+1)" onClick={() => changeWorkspaceView('editor')}>Edit</button>
-              <button type="button" aria-pressed={workspaceView === 'split'} title="Split preview (Ctrl+2)" onClick={() => changeWorkspaceView('split')}>Split</button>
-              <button type="button" aria-pressed={workspaceView === 'preview'} title="Preview (Ctrl+3)" onClick={() => changeWorkspaceView('preview')}>Read</button>
+              <button type="button" aria-pressed={workspaceView === 'editor'} title={`Editor (${shortcutModifier}+1)`} onClick={() => changeWorkspaceView('editor')}>Edit</button>
+              <button type="button" aria-pressed={workspaceView === 'split'} title={`Split preview (${shortcutModifier}+2)`} onClick={() => changeWorkspaceView('split')}>Split</button>
+              <button type="button" aria-pressed={workspaceView === 'preview'} title={`Preview (${shortcutModifier}+3)`} onClick={() => changeWorkspaceView('preview')}>Read</button>
             </div>
             <button
               className="command-toggle"
               type="button"
-              title="Command palette (Ctrl+P)"
+              title={`Command palette (${shortcutModifier}+P)`}
               aria-label="Open command palette"
               onClick={() => setCommandPaletteOpen(true)}
             >
@@ -1823,7 +1855,7 @@ export default function App(): React.JSX.Element {
               disabled={transitioning || needsEolChoice}
               aria-pressed={sourceMode}
               aria-label="Source mode"
-              title={`${sourceMode ? 'Switch to visual mode' : 'Switch to source mode'} (Ctrl+/)`}
+              title={`${sourceMode ? 'Switch to visual mode' : 'Switch to source mode'} (${shortcutModifier}+/)`}
               onClick={toggleSourceMode}
             >
               Source
@@ -1831,7 +1863,7 @@ export default function App(): React.JSX.Element {
             <button
               className={`save-button${document.path && !dirty && !saving ? ' is-saved' : ''}`}
               type="button"
-              title="Save (Ctrl+S)"
+              title={`Save (${shortcutModifier}+S)`}
               disabled={transitioning || saving}
               aria-busy={saving}
               onClick={() => void saveDocument(false)}
@@ -1858,7 +1890,7 @@ export default function App(): React.JSX.Element {
               <button type="button" className="tab-close" aria-label={`Close ${tab.displayName}`} title="Close tab" onClick={() => void closeTab(tab.id)}>×</button>
             </div>
           ))}
-          <button type="button" className="new-tab" aria-label="New document" title="New document (Ctrl+N)" onClick={() => void createNew()}>＋</button>
+          <button type="button" className="new-tab" aria-label="New document" title={`New document (${shortcutModifier}+N)`} onClick={() => void createNew()}>＋</button>
         </div>
 
         {writingToolsOpen && (

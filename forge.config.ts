@@ -1,5 +1,8 @@
 import type { ForgeConfig } from '@electron-forge/shared-types';
 import { existsSync } from 'node:fs';
+import { MakerDMG } from '@electron-forge/maker-dmg';
+import { MakerDeb } from '@electron-forge/maker-deb';
+import { MakerRpm } from '@electron-forge/maker-rpm';
 import { MakerSquirrel } from '@electron-forge/maker-squirrel';
 import { MakerZIP } from '@electron-forge/maker-zip';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
@@ -13,11 +16,33 @@ const windowsSign = process.env.WINDOWS_CERTIFICATE_FILE && process.env.WINDOWS_
     }
   : undefined;
 const projectLegalFiles = ['LICENSE', 'EULA.md', 'EULA.txt'].filter((file) => existsSync(file));
+const platformIcon = process.platform === 'darwin'
+  ? 'assets/icon.icns'
+  : process.platform === 'linux'
+    ? 'assets/icon.png'
+    : 'assets/icon.ico';
 
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
-    icon: 'assets/icon.ico',
+    icon: platformIcon,
+    appBundleId: 'io.github.scotteliu.inkstill',
+    appCategoryType: 'public.app-category.productivity',
+    executableName: 'Inkstill',
+    extendInfo: {
+      CFBundleDocumentTypes: [
+        {
+          CFBundleTypeName: 'Markdown document',
+          CFBundleTypeExtensions: ['md', 'markdown'],
+          CFBundleTypeRole: 'Editor',
+        },
+        {
+          CFBundleTypeName: 'Plain text document',
+          CFBundleTypeExtensions: ['txt'],
+          CFBundleTypeRole: 'Editor',
+        },
+      ],
+    },
     extraResource: [
       'release/sbom.cdx.json',
       'release/THIRD_PARTY_LICENSES.md',
@@ -32,7 +57,23 @@ const config: ForgeConfig = {
       setupIcon: 'assets/icon.ico',
       ...(windowsSign ? { windowsSign } : {}),
     }),
-    new MakerZIP({}, ['win32', 'darwin']),
+    new MakerDMG({
+      format: 'ULFO',
+    }),
+    new MakerDeb({
+      options: {
+        maintainer: 'Scotte Liu',
+        homepage: 'https://github.com/ScotteLiu/Inkstill',
+        icon: 'assets/icon.png',
+      },
+    }),
+    new MakerRpm({
+      options: {
+        homepage: 'https://github.com/ScotteLiu/Inkstill',
+        icon: 'assets/icon.png',
+      },
+    }),
+    new MakerZIP({}, ['win32', 'darwin', 'linux']),
   ],
   plugins: [
     new VitePlugin({

@@ -22,6 +22,9 @@ export const IPC = {
   restoreRecovery: 'recovery:restore',
   discardRecovery: 'recovery:discard',
   menuCommand: 'app:menu-command',
+  rendererReady: 'app:renderer-ready',
+  systemOpenDocument: 'app:system-open-document',
+  systemOpenHandled: 'app:system-open-handled',
   openExternal: 'app:open-external',
   exportHtml: 'app:export-html',
   exportPdf: 'app:export-pdf',
@@ -282,7 +285,11 @@ export const externalChangeEventSchema = z.object({
 });
 export type ExternalChangeEvent = z.infer<typeof externalChangeEventSchema>;
 
+export const desktopPlatformSchema = z.enum(['win32', 'darwin', 'linux']);
+export type DesktopPlatform = z.infer<typeof desktopPlatformSchema>;
+
 export interface DesktopApi {
+  readonly platform: DesktopPlatform;
   createDocument(request: CreateDocumentRequest): Promise<DocumentSnapshot>;
   openDocument(): Promise<DocumentSnapshot | null>;
   closeDocument(request: DocumentIdRequest): Promise<void>;
@@ -310,6 +317,9 @@ export interface DesktopApi {
   pasteImage(request: DocumentIdRequest): Promise<ImportedImage | null>;
   readLocalAsset(request: LocalAssetRequest): Promise<LocalAsset>;
   restoreSession(): Promise<DocumentSnapshot[]>;
+  rendererReady(): void;
+  acknowledgeSystemOpen(): void;
   onMenuCommand(listener: (command: MenuCommand) => void): () => void;
+  onSystemOpenDocument(listener: (document: DocumentSnapshot) => void): () => void;
   onExternalChange(listener: (event: ExternalChangeEvent) => void): () => void;
 }
