@@ -8,11 +8,11 @@
 
 <p align="center">
   A calm, local-first Markdown workspace for Windows, macOS, and Linux.<br>
-  Beautiful writing, connected notes, and ordinary Markdown filesâ€”without an account.
+  Beautiful writing, connected notes, and ordinary Markdown files—without an account.
 </p>
 
 <p align="center">
-  <a href="README.md">English</a> Â· <a href="README.zh-CN.md">ç®€ä½“ä¸­æ–‡</a>
+  <a href="README.md">English</a> · <a href="README.zh-CN.md">简体中文</a>
 </p>
 
 <p align="center">
@@ -76,7 +76,7 @@ notes into a navigable workspace.
 Direct downloads:
 
 - [Windows x64 installer](https://github.com/ScotteLiu/Inkstill/releases/download/v1.1.1-preview.1/Inkstill-1.1.1.Setup.exe)
-- [Portable Windows x64 ZIP](https://github.com/ScotteLiu/Inkstill/releases/download/v1.1.1-preview.1/Inkstill-win32-x64-1.1.1.zip) â€” extract and run `Inkstill.exe`.
+- [Portable Windows x64 ZIP](https://github.com/ScotteLiu/Inkstill/releases/download/v1.1.1-preview.1/Inkstill-win32-x64-1.1.1.zip) — extract and run `Inkstill.exe`.
 - [SHA-256 checksums](https://github.com/ScotteLiu/Inkstill/releases/download/v1.1.1-preview.1/SHA256SUMS.txt)
 
 macOS (Intel and Apple silicon) and Linux x64 packages are now built and tested by
@@ -131,7 +131,7 @@ are not represented as features of this local editor.
 
 Inkstill is open source under the [MIT License](LICENSE).
 
-Copyright Â© 2026 Scotte Liu.
+Copyright © 2026 Scotte Liu.
 
-- **Scotte Liu** â€” Creator, copyright holder, and lead developer
-- **OpenAI Codex** â€” Development assistance
+- **Scotte Liu** — Creator, copyright holder, and lead developer
+- **OpenAI Codex** — Development assistance
