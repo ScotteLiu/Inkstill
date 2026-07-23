@@ -99,7 +99,8 @@ test('launches a sandboxed editor and keeps Markdown editable', async () => {
     const pageErrors: string[] = [];
     page.on('pageerror', (error) => pageErrors.push(error.message));
 
-    await expect(page.getByText('Inkstill')).toBeVisible();
+    // A clean CI runner may still be warming the Electron binary on the first launch.
+    await expect(page.getByText('Inkstill')).toBeVisible({ timeout: 15_000 });
     await expect(page.locator('.cm-placeholder')).toContainText('Start writing…');
     await expect(page.getByRole('textbox', { name: /Markdown editor: Untitled\.md/ }))
       .toHaveAttribute('aria-readonly', 'false');
