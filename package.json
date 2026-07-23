@@ -29,6 +29,8 @@
     "test:e2e": "playwright test",
     "test:runtime": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/runtime-budget.ps1",
     "test:visual": "node scripts/capture-ui.mjs",
+    "site:social": "node scripts/capture-social-preview.mjs",
+    "site:build": "node scripts/build-site.mjs",
     "test:installer": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/installer-smoke.ps1",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
