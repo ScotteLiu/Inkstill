@@ -43,14 +43,22 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          $package = Get-Content -LiteralPath "package.json" -Raw | ConvertFrom-Json
+          $version = $package.version
+          $setup = "out/make/squirrel.windows/x64/Inkstill-$version Setup.exe"
+          $portable = "out/make/zip/win32/x64/Inkstill-win32-x64-$version.zip"
+          $squirrelPackage = "out/make/squirrel.windows/x64/markdown_editor-$version-full.nupkg"
+          $releaseNotes = "docs/RELEASE_NOTES_$($version.Replace('.', '_'))_PREVIEW.md"
           gh release create "$env:GITHUB_REF_NAME" `
-            "out/make/squirrel.windows/x64/Inkstill-1.1.0 Setup.exe#Windows x64 installer" `
-            "out/make/zip/win32/x64/Inkstill-win32-x64-1.1.0.zip#Windows x64 portable" `
+            "$setup#Windows x64 installer" `
+            "$portable#Windows x64 portable" `
+            "$squirrelPackage#Squirrel update package" `
+            "out/make/squirrel.windows/x64/RELEASES#Squirrel update manifest" `
             "release/SHA256SUMS.txt#SHA-256 checksums" `
             "release/sbom.cdx.json#CycloneDX SBOM" `
             "release/THIRD_PARTY_LICENSES.md#Third-party licenses" `
             "release/build-manifest.json#Build manifest" `
             --verify-tag `
             --prerelease `
-            --title "Inkstill 1.1.0 Preview" `
-            --notes-file "docs/RELEASE_NOTES_1.1.0_PREVIEW.md"
+            --title "Inkstill $version Preview" `
+            --notes-file "$releaseNotes"

@@ -107,6 +107,13 @@ test('launches a sandboxed editor and keeps Markdown editable', async () => {
     await expect(page.locator('.cm-placeholder')).toContainText('Start writing…');
     await expect(page.getByRole('textbox', { name: /Markdown editor: Untitled\.md/ }))
       .toHaveAttribute('aria-readonly', 'false');
+    if (process.platform === 'win32') {
+      const updateMenuAvailable = await electronApp.evaluate(({ Menu }) =>
+        Menu.getApplicationMenu()?.items
+          .find((item) => item.label === 'Help')
+          ?.submenu?.items.some((item) => item.label === 'Check for Updates…') ?? false);
+      expect(updateMenuAvailable).toBe(true);
+    }
 
     await electronApp.evaluate(({ BrowserWindow }) => {
       const current = BrowserWindow.getAllWindows()[0];

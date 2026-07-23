@@ -1,6 +1,10 @@
 import { spawn, spawnSync } from 'node:child_process';
-import { readFile, realpath, stat } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { createReadStream, createWriteStream } from 'node:fs';
+import { mkdir, readFile, realpath, rename, rm, stat } from 'node:fs/promises';
 import { basename, dirname, extname, join, resolve, sep } from 'node:path';
+import { Readable, Transform } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
 import { pathToFileURL } from 'node:url';
 import {
   app,
@@ -48,6 +52,12 @@ import {
   scanWorkspace,
   searchWorkspace,
 } from './workspace/workspaceService';
+import {
+  checksumForAsset,
+  selectUpdate,
+  type PublicRelease,
+  type UpdateCandidate,
+} from './updates/updatePrimitives';
 
 function escapeHtml(value: string): string {
   return value
@@ -265,6 +275,7 @@ let shutdownComplete = false;
 let windowCleanup: Promise<void> | null = null;
 let rendererReady = false;
 let systemOpenInFlight = false;
+let updateCheckInFlight = false;
 const pendingSystemOpenPaths: string[] = [];
 
 const devServerUrl = MAIN_WINDOW_VITE_DEV_SERVER_URL;
@@ -329,6 +340,228 @@ async function dispatchNextSystemOpen(): Promise<void> {
   } catch (error) {
     console.error(`Unable to open ${target}`, error);
     void dispatchNextSystemOpen();
+  }
+}
+
+const RELEASES_API = 'https://api.github.com/repos/ScotteLiu/Inkstill/releases?per_page=10';
+const MAX_RELEASE_RESPONSE_BYTES = 2_000_000;
+const MAX_CHECKSUM_RESPONSE_BYTES = 256_000;
+const MAX_INSTALLER_BYTES = 250_000_000;
+
+async function responseText(response: Response, maximumBytes: number): Promise<string> {
+  if (!response.ok) throw new Error(`GitHub returned HTTP ${response.status}.`);
+  const text = await response.text();
+  if (Buffer.byteLength(text, 'utf8') > maximumBytes) {
+    throw new Error('The update response is unexpectedly large.');
+  }
+  return text;
+}
+
+function parsePublicReleases(value: unknown): PublicRelease[] {
+  if (!Array.isArray(value)) throw new Error('GitHub returned an invalid release list.');
+  return value.flatMap((item): PublicRelease[] => {
+    if (!item || typeof item !== 'object') return [];
+    const release = item as Record<string, unknown>;
+    if (
+      typeof release.tag_name !== 'string'
+      || (typeof release.name !== 'string' && release.name !== null)
+      || typeof release.draft !== 'boolean'
+      || typeof release.prerelease !== 'boolean'
+      || typeof release.html_url !== 'string'
+      || !Array.isArray(release.assets)
+    ) return [];
+    const assets = release.assets.flatMap((item): PublicRelease['assets'] => {
+      if (!item || typeof item !== 'object') return [];
+      const asset = item as Record<string, unknown>;
+      return typeof asset.name === 'string'
+        && typeof asset.browser_download_url === 'string'
+        && typeof asset.size === 'number'
+        ? [{
+            name: asset.name,
+            browser_download_url: asset.browser_download_url,
+            size: asset.size,
+          }]
+        : [];
+    });
+    return [{
+      tag_name: release.tag_name,
+      name: release.name,
+      draft: release.draft,
+      prerelease: release.prerelease,
+      html_url: release.html_url,
+      assets,
+    }];
+  });
+}
+
+async function sha256(path: string): Promise<string> {
+  const digest = createHash('sha256');
+  for await (const chunk of createReadStream(path)) digest.update(chunk);
+  return digest.digest('hex');
+}
+
+async function downloadVerifiedInstaller(candidate: UpdateCandidate): Promise<string> {
+  if (candidate.installer.size > MAX_INSTALLER_BYTES) {
+    throw new Error('The update installer is larger than the permitted limit.');
+  }
+  const headers = {
+    Accept: 'application/vnd.github+json',
+    'User-Agent': `Inkstill/${app.getVersion()}`,
+  };
+  const checksumResponse = await net.fetch(candidate.checksums.browser_download_url, { headers });
+  const checksumText = await responseText(checksumResponse, MAX_CHECKSUM_RESPONSE_BYTES);
+  const expectedHash = checksumForAsset(checksumText, candidate.installer.name);
+  if (!expectedHash) throw new Error('The release does not contain a checksum for its installer.');
+
+  const updateFolder = join(app.getPath('temp'), 'Inkstill', 'updates');
+  const target = join(updateFolder, `Inkstill-${candidate.version}-Setup.exe`);
+  const partial = `${target}.partial`;
+  await mkdir(updateFolder, { recursive: true });
+  try {
+    if ((await sha256(target)) === expectedHash) return target;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+  }
+
+  await rm(partial, { force: true });
+  const response = await net.fetch(candidate.installer.browser_download_url, { headers });
+  if (!response.ok || !response.body) {
+    throw new Error(`The installer download failed with HTTP ${response.status}.`);
+  }
+  const contentLength = Number(response.headers.get('content-length') ?? 0);
+  if (contentLength > MAX_INSTALLER_BYTES) {
+    throw new Error('The update installer is larger than the permitted limit.');
+  }
+  let downloadedBytes = 0;
+  const sizeLimit = new Transform({
+    transform(chunk: Buffer, _encoding, callback) {
+      downloadedBytes += chunk.byteLength;
+      callback(
+        downloadedBytes > MAX_INSTALLER_BYTES
+          ? new Error('The update installer exceeded the permitted limit.')
+          : null,
+        chunk,
+      );
+    },
+  });
+  try {
+    await pipeline(
+      Readable.fromWeb(response.body as never),
+      sizeLimit,
+      createWriteStream(partial, { flags: 'wx' }),
+    );
+    if ((await sha256(partial)) !== expectedHash) {
+      throw new Error('The downloaded installer failed SHA-256 verification.');
+    }
+    await rm(target, { force: true });
+    await rename(partial, target);
+    return target;
+  } catch (error) {
+    await rm(partial, { force: true }).catch(() => undefined);
+    throw error;
+  }
+}
+
+async function updateDialog(options: Electron.MessageBoxOptions): Promise<Electron.MessageBoxReturnValue> {
+  return mainWindow && !mainWindow.isDestroyed()
+    ? dialog.showMessageBox(mainWindow, options)
+    : dialog.showMessageBox(options);
+}
+
+async function checkForUpdates(manual: boolean): Promise<void> {
+  if (!app.isPackaged || process.platform !== 'win32') {
+    if (manual) {
+      await updateDialog({
+        type: 'info',
+        title: 'Updates',
+        message: 'Automatic updates are available in the installed Windows edition.',
+        buttons: ['OK'],
+      });
+    }
+    return;
+  }
+  if (updateCheckInFlight) {
+    if (manual) {
+      await updateDialog({
+        type: 'info',
+        title: 'Updates',
+        message: 'Inkstill is already checking for an update.',
+        buttons: ['OK'],
+      });
+    }
+    return;
+  }
+
+  updateCheckInFlight = true;
+  try {
+    const response = await net.fetch(RELEASES_API, {
+      headers: {
+        Accept: 'application/vnd.github+json',
+        'User-Agent': `Inkstill/${app.getVersion()}`,
+        'X-GitHub-Api-Version': '2022-11-28',
+      },
+    });
+    const releases = parsePublicReleases(JSON.parse(await responseText(response, MAX_RELEASE_RESPONSE_BYTES)));
+    const candidate = selectUpdate(releases, app.getVersion());
+    if (!candidate) {
+      if (manual) {
+        await updateDialog({
+          type: 'info',
+          title: 'Inkstill is up to date',
+          message: `You have the latest version (${app.getVersion()}).`,
+          buttons: ['OK'],
+        });
+      }
+      return;
+    }
+
+    const decision = await updateDialog({
+      type: 'info',
+      title: 'Inkstill update available',
+      message: `${candidate.releaseName} is available.`,
+      detail: 'Download the verified installer in the background? Your open documents will not be interrupted.',
+      buttons: ['Download', 'Later', 'View Release'],
+      defaultId: 0,
+      cancelId: 1,
+      noLink: true,
+    });
+    if (decision.response === 2) {
+      await shell.openExternal(candidate.releaseUrl);
+      return;
+    }
+    if (decision.response !== 0) return;
+
+    mainWindow?.setProgressBar(2);
+    const installer = await downloadVerifiedInstaller(candidate);
+    mainWindow?.setProgressBar(-1);
+    const installDecision = await updateDialog({
+      type: 'info',
+      title: 'Update ready',
+      message: `Inkstill ${candidate.version} has been downloaded and verified.`,
+      detail: 'Open the installer now? Your current document remains open; restart Inkstill after installation.',
+      buttons: ['Install Update', 'Later'],
+      defaultId: 0,
+      cancelId: 1,
+      noLink: true,
+    });
+    if (installDecision.response === 0) {
+      const error = await shell.openPath(installer);
+      if (error) throw new Error(error);
+    }
+  } catch (error) {
+    mainWindow?.setProgressBar(-1);
+    console.error('Update check failed', error);
+    if (manual) {
+      await updateDialog({
+        type: 'error',
+        title: 'Unable to check for updates',
+        message: 'Inkstill could not securely download an update.',
+        detail: error instanceof Error ? error.message : 'Unknown update error.',
+        buttons: ['OK'],
+      });
+    }
+  } finally {
+    updateCheckInFlight = false;
   }
 }
 
@@ -432,6 +665,12 @@ function buildApplicationMenu(): void {
       label: 'Help',
       submenu: [
         { label: 'Markdown Cheat Sheet', accelerator: 'F1', click: () => sendMenuCommand('cheat-sheet') },
+        ...(process.platform === 'win32'
+          ? [
+              { type: 'separator' as const },
+              { label: 'Check for Updates…', click: () => void checkForUpdates(true) },
+            ]
+          : []),
       ],
     },
   ];
@@ -968,7 +1207,7 @@ if (!squirrelStartupHandled) {
 }
 
 if (!squirrelStartupHandled && hasSingleInstanceLock) void app.whenReady().then(async () => {
-  if (process.platform === 'win32') app.setAppUserModelId('io.github.scotteliu.inkstill');
+  if (process.platform === 'win32') app.setAppUserModelId('com.squirrel.markdown_editor.Inkstill');
   configureSessionSecurity();
   await registerAppProtocol();
 
@@ -980,6 +1219,12 @@ if (!squirrelStartupHandled && hasSingleInstanceLock) void app.whenReady().then(
   buildApplicationMenu();
   await createMainWindow();
   void dispatchNextSystemOpen();
+  if (app.isPackaged && process.platform === 'win32') {
+    const initialUpdateTimer = setTimeout(() => void checkForUpdates(false), 20_000);
+    initialUpdateTimer.unref();
+    const recurringUpdateTimer = setInterval(() => void checkForUpdates(false), 6 * 60 * 60 * 1000);
+    recurringUpdateTimer.unref();
+  }
 
   app.on('activate', () => {
     void (async () => {
