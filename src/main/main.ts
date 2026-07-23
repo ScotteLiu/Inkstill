@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { readFile, realpath, stat } from 'node:fs/promises';
 import { basename, dirname, extname, join, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -146,6 +146,57 @@ function handleSquirrelStartup(): boolean {
           : [];
   if (shortcutOperations.length === 0 && squirrelEvent !== '--squirrel-obsolete') return false;
 
+  const registry = (args: string[]): void => {
+    const result = spawnSync('reg.exe', args, {
+      encoding: 'utf8',
+      stdio: 'pipe',
+      windowsHide: true,
+    });
+    if (result.error || result.status !== 0) {
+      console.error(`Windows file association command failed: reg.exe ${args.join(' ')}`, result.error ?? result.stderr);
+    }
+  };
+  const addDefault = (key: string, value: string): void =>
+    registry(['ADD', key, '/ve', '/t', 'REG_SZ', '/d', value, '/f']);
+  const addValue = (key: string, name: string, value: string): void =>
+    registry(['ADD', key, '/v', name, '/t', 'REG_SZ', '/d', value, '/f']);
+  const removeKey = (key: string): void =>
+    registry(['DELETE', key, '/f']);
+  const removeValue = (key: string, name: string): void =>
+    registry(['DELETE', key, '/v', name, '/f']);
+
+  if (squirrelEvent === '--squirrel-install' || squirrelEvent === '--squirrel-updated') {
+    const classes = 'HKCU\\Software\\Classes';
+    const applicationKey = `${classes}\\Applications\\${executableName}`;
+    const progId = 'Inkstill.Markdown';
+    const progIdKey = `${classes}\\${progId}`;
+    const capabilitiesKey = 'HKCU\\Software\\Inkstill\\Capabilities';
+    const openCommand = `"${process.execPath}" "%1"`;
+
+    addValue(applicationKey, 'FriendlyAppName', 'Inkstill');
+    addDefault(`${applicationKey}\\shell\\open\\command`, openCommand);
+    for (const extension of ['.md', '.markdown', '.txt']) {
+      addValue(`${applicationKey}\\SupportedTypes`, extension, '');
+      addValue(`${classes}\\${extension}\\OpenWithProgids`, progId, '');
+      addValue(`${capabilitiesKey}\\FileAssociations`, extension, progId);
+    }
+    addDefault(progIdKey, 'Markdown document');
+    addDefault(`${progIdKey}\\DefaultIcon`, `${process.execPath},0`);
+    addDefault(`${progIdKey}\\shell\\open\\command`, openCommand);
+    addValue(capabilitiesKey, 'ApplicationName', 'Inkstill');
+    addValue(capabilitiesKey, 'ApplicationDescription', 'A focused Markdown editor and workspace.');
+    addValue('HKCU\\Software\\RegisteredApplications', 'Inkstill', 'Software\\Inkstill\\Capabilities');
+  } else if (squirrelEvent === '--squirrel-uninstall') {
+    const classes = 'HKCU\\Software\\Classes';
+    for (const extension of ['.md', '.markdown', '.txt']) {
+      removeValue(`${classes}\\${extension}\\OpenWithProgids`, 'Inkstill.Markdown');
+    }
+    removeKey(`${classes}\\Applications\\${executableName}`);
+    removeKey(`${classes}\\Inkstill.Markdown`);
+    removeKey('HKCU\\Software\\Inkstill');
+    removeValue('HKCU\\Software\\RegisteredApplications', 'Inkstill');
+  }
+
   if (shortcutOperations.length > 0) {
     const applicationFolder = resolve(process.execPath, '..');
     const updateExecutable = resolve(applicationFolder, '..', 'Update.exe');
@@ -247,6 +298,13 @@ function queueSystemOpenPath(candidate: string): void {
 
 function queueSystemOpenArguments(commandLine: string[]): void {
   for (const argument of commandLine) queueSystemOpenPath(argument);
+}
+
+// Capture launch arguments before window creation. On Windows an Open With launch can
+// reach the renderer immediately, so queuing only after loadURL risks missing its
+// one-time ready handshake.
+if (!squirrelStartupHandled) {
+  queueSystemOpenArguments(process.argv.slice(app.isPackaged ? 1 : 2));
 }
 
 async function dispatchNextSystemOpen(): Promise<void> {
@@ -910,7 +968,7 @@ if (!squirrelStartupHandled) {
 }
 
 if (!squirrelStartupHandled && hasSingleInstanceLock) void app.whenReady().then(async () => {
-  if (process.platform === 'win32') app.setAppUserModelId('local.markdown-editor');
+  if (process.platform === 'win32') app.setAppUserModelId('io.github.scotteliu.inkstill');
   configureSessionSecurity();
   await registerAppProtocol();
 
@@ -921,7 +979,6 @@ if (!squirrelStartupHandled && hasSingleInstanceLock) void app.whenReady().then(
   registerIpc();
   buildApplicationMenu();
   await createMainWindow();
-  queueSystemOpenArguments(process.argv.slice(app.isPackaged ? 1 : 2));
   void dispatchNextSystemOpen();
 
   app.on('activate', () => {

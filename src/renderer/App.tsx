@@ -24,6 +24,23 @@ import { MarkdownPreview } from './preview/MarkdownPreview';
 
 const OUTLINE_ANALYSIS_LIMIT = 2_000_000;
 const LONG_LINE_LIMIT = 100_000;
+const CODE_BLOCK_LANGUAGES = [
+  ['text', 'Plain text'],
+  ['javascript', 'JavaScript'],
+  ['typescript', 'TypeScript'],
+  ['python', 'Python'],
+  ['cpp', 'C / C++'],
+  ['csharp', 'C#'],
+  ['java', 'Java'],
+  ['go', 'Go'],
+  ['rust', 'Rust'],
+  ['html', 'HTML / XML'],
+  ['css', 'CSS'],
+  ['json', 'JSON'],
+  ['bash', 'Shell'],
+  ['sql', 'SQL'],
+  ['yaml', 'YAML'],
+] as const;
 
 type WorkspaceView = 'editor' | 'split' | 'preview';
 
@@ -1339,16 +1356,19 @@ export default function App(): React.JSX.Element {
             setStatus(`Found ${index.recoveries.length} unsaved draft${index.recoveries.length === 1 ? '' : 's'}`);
           } else if (!documentIdRef.current) {
             const restored = await window.desktop.restoreSession();
-            if (restored.length > 0) {
-              for (const snapshot of restored) {
-                await activateDocument(snapshot, { status: `Restored ${restored.length} tab${restored.length === 1 ? '' : 's'}` });
+            // A file-open event may win the startup race while the session is loading.
+            if (!documentIdRef.current) {
+              if (restored.length > 0) {
+                for (const snapshot of restored) {
+                  await activateDocument(snapshot, { status: `Restored ${restored.length} tab${restored.length === 1 ? '' : 's'}` });
+                }
+              } else {
+                await createInitialDocument(
+                  index.quarantinedCount > 0
+                    ? `Unable to recover ${index.quarantinedCount} draft${index.quarantinedCount === 1 ? '' : 's'}`
+                    : 'Ready',
+                );
               }
-            } else {
-              await createInitialDocument(
-                index.quarantinedCount > 0
-                  ? `Unable to recover ${index.quarantinedCount} draft${index.quarantinedCount === 1 ? '' : 's'}`
-                  : 'Ready',
-              );
             }
           }
         } catch (error) {
@@ -1823,6 +1843,24 @@ export default function App(): React.JSX.Element {
             <ToolbarButton disabled={transitioning || needsEolChoice} label="↗" title="Insert link" onClick={() => runEditorAction(() => editorRef.current?.wrapSelection('[', '](https://)', 'link text'))} />
             <ToolbarButton disabled={transitioning || needsEolChoice} label="▧" title="Insert local image" onClick={() => void importImage()} />
             <ToolbarButton disabled={transitioning || needsEolChoice} label="‹›" title="Inline code" onClick={() => runEditorAction(() => editorRef.current?.wrapSelection('`', '`', 'code'))} />
+            <select
+              className="code-language-select"
+              value=""
+              disabled={transitioning || needsEolChoice}
+              aria-label="Insert code block by language"
+              title="Insert code block by language"
+              onChange={(event) => {
+                const language = event.target.value;
+                if (language) {
+                  runEditorAction(() => editorRef.current?.insertSnippet(`\`\`\`${language}\n{{cursor}}\n\`\`\``));
+                }
+              }}
+            >
+              <option value="" disabled>Code</option>
+              {CODE_BLOCK_LANGUAGES.map(([value, label]) => (
+                <option value={value} key={value}>{label}</option>
+              ))}
+            </select>
           </div>
           <div className="topbar-actions">
             <div className="view-switcher" role="group" aria-label="Workspace view">
@@ -2055,33 +2093,35 @@ export default function App(): React.JSX.Element {
         </div>
 
         <footer className="statusbar">
-          <span role="status" aria-live="polite">{status}</span>
-          <div>
+          <span className="status-message" role="status" aria-live="polite">
+            <i aria-hidden="true" />
+            {status || (workspaceView === 'preview' ? 'Preview' : workspaceView === 'split' ? 'Split view' : 'Ready')}
+          </span>
+          <div className="status-metrics">
             {selectionStats && (
               <span className="selection-stats">
-                Selected: {selectionStats.words.toLocaleString('en-US')} {selectionStats.words === 1 ? 'word' : 'words'}, {selectionStats.characters.toLocaleString('en-US')} {selectionStats.characters === 1 ? 'character' : 'characters'}
+                Selected {selectionStats.words.toLocaleString('en-US')}w · {selectionStats.characters.toLocaleString('en-US')}c
               </span>
             )}
             {largeFileMode && <span>Large file mode</span>}
             {document.format.bom && <span>UTF-8 BOM</span>}
-            <span>{document.format.eol === '\r\n' ? 'CRLF' : 'LF'}</span>
+            <span title="Line endings">{document.format.eol === '\r\n' ? 'CRLF' : 'LF'}</span>
             {document.format.mixedEol && <span className="warning-text">Mixed line endings</span>}
             {stats.words !== null && (
-              <span>{stats.words.toLocaleString('en-US')} {stats.words === 1 ? 'word' : 'words'}</span>
-            )}
-            {stats.words !== null && stats.words > 0 && (
-              <span>{Math.max(1, Math.ceil(stats.words / 200))} min read</span>
+              <span title="Word count and estimated reading time">
+                {stats.words.toLocaleString('en-US')} {stats.words === 1 ? 'word' : 'words'}
+                {stats.words > 0 && <> · {Math.max(1, Math.ceil(stats.words / 200))} min</>}
+              </span>
             )}
             {stats.words !== null && editorPreferences.writingGoal > 0 && (
               <span className="goal-progress">
                 Goal {Math.min(100, Math.round((stats.words / editorPreferences.writingGoal) * 100))}%
               </span>
             )}
-            <span className="status-line-count">
+            <span className="status-document-size" title="Document size">
               {stats.lines.toLocaleString('en-US')} {stats.lines === 1 ? 'line' : 'lines'}
-            </span>
-            <span className="status-character-count">
-              {stats.characters.toLocaleString('en-US')} {stats.characters === 1 ? 'character' : 'characters'}
+              {' · '}
+              {stats.characters.toLocaleString('en-US')} chars
             </span>
           </div>
         </footer>

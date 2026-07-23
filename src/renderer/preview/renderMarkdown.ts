@@ -1,8 +1,78 @@
 import DOMPurify from 'dompurify';
+import hljs from 'highlight.js/lib/core';
+import bash from 'highlight.js/lib/languages/bash';
+import cpp from 'highlight.js/lib/languages/cpp';
+import csharp from 'highlight.js/lib/languages/csharp';
+import css from 'highlight.js/lib/languages/css';
+import go from 'highlight.js/lib/languages/go';
+import java from 'highlight.js/lib/languages/java';
+import javascript from 'highlight.js/lib/languages/javascript';
+import json from 'highlight.js/lib/languages/json';
+import markdown from 'highlight.js/lib/languages/markdown';
+import python from 'highlight.js/lib/languages/python';
+import rust from 'highlight.js/lib/languages/rust';
+import sql from 'highlight.js/lib/languages/sql';
+import typescript from 'highlight.js/lib/languages/typescript';
+import xml from 'highlight.js/lib/languages/xml';
+import yaml from 'highlight.js/lib/languages/yaml';
 import katex from 'katex';
 import { Marked, type Renderer } from 'marked';
 
 import { EMOJI_SHORTCODES } from '../markdown/emoji';
+
+for (const [name, language] of Object.entries({
+  bash,
+  cpp,
+  csharp,
+  css,
+  go,
+  java,
+  javascript,
+  json,
+  markdown,
+  python,
+  rust,
+  sql,
+  typescript,
+  xml,
+  yaml,
+})) {
+  hljs.registerLanguage(name, language);
+}
+
+const LANGUAGE_ALIASES: Record<string, string> = {
+  c: 'cpp',
+  'c++': 'cpp',
+  cs: 'csharp',
+  html: 'xml',
+  js: 'javascript',
+  jsx: 'javascript',
+  md: 'markdown',
+  py: 'python',
+  sh: 'bash',
+  shell: 'bash',
+  ts: 'typescript',
+  tsx: 'typescript',
+  yml: 'yaml',
+};
+
+const LANGUAGE_LABELS: Record<string, string> = {
+  bash: 'Shell',
+  cpp: 'C / C++',
+  csharp: 'C#',
+  css: 'CSS',
+  go: 'Go',
+  java: 'Java',
+  javascript: 'JavaScript',
+  json: 'JSON',
+  markdown: 'Markdown',
+  python: 'Python',
+  rust: 'Rust',
+  sql: 'SQL',
+  typescript: 'TypeScript',
+  xml: 'HTML / XML',
+  yaml: 'YAML',
+};
 
 interface PlaceholderStore {
   values: string[];
@@ -103,6 +173,12 @@ function preprocess(markdown: string, store: PlaceholderStore): string {
 
   prepared = prepared.replace(/\$\$([\s\S]+?)\$\$/g, (_match, source: string) =>
     `\n\n${store.add(`<div class="math-block">${renderMath(source, true)}</div>`)}\n\n`);
+  prepared = prepared.replace(/\\\[([\s\S]+?)\\\]/g, (_match, source: string) =>
+    `\n\n${store.add(`<div class="math-block">${renderMath(source, true)}</div>`)}\n\n`);
+  prepared = prepared.replace(/^\s*\[\s*([^\]\n]*(?:\\[A-Za-z]+|[_^]\{?)[^\]\n]*?)\s*\]\s*$/gm, (_match, source: string) =>
+    `\n\n${store.add(`<div class="math-block">${renderMath(source, true)}</div>`)}\n\n`);
+  prepared = prepared.replace(/\\\((.+?)\\\)/g, (_match, source: string) =>
+    store.add(`<span class="math-inline">${renderMath(source, false)}</span>`));
   prepared = prepared.replace(/(^|[^\\$])\$([^\n$]+?)\$/g, (_match, prefix: string, source: string) =>
     `${prefix}${store.add(`<span class="math-inline">${renderMath(source, false)}</span>`)}`);
 
@@ -159,12 +235,27 @@ function createRenderer(store: PlaceholderStore): Renderer {
       return `<h${depth} id="${id}">${content}</h${depth}>`;
     };
   renderer.code = function code({ text, lang }) {
-      const language = (lang ?? '').trim().split(/\s+/)[0].toLocaleLowerCase('en-US');
-      if (language === 'mermaid') {
+      const requestedLanguage = (lang ?? '').trim().split(/\s+/)[0].toLocaleLowerCase('en-US');
+      if (requestedLanguage === 'mermaid') {
         return store.add(`<div class="mermaid" data-mermaid="true">${escapeHtml(text)}</div>`);
       }
-      const className = language ? ` class="language-${escapeHtml(language)}"` : '';
-      return `<pre><code${className}>${escapeHtml(text)}</code></pre>`;
+      const normalizedLanguage = LANGUAGE_ALIASES[requestedLanguage] ?? requestedLanguage;
+      let language = hljs.getLanguage(normalizedLanguage) ? normalizedLanguage : '';
+      let highlighted = escapeHtml(text);
+      if (language) {
+        highlighted = hljs.highlight(text, { language, ignoreIllegals: true }).value;
+      } else if (!requestedLanguage && text.trim() && text.length <= 12_000) {
+        const detected = hljs.highlightAuto(text);
+        language = detected.language ?? '';
+        highlighted = detected.value;
+      }
+      const label = language
+        ? LANGUAGE_LABELS[language] ?? language
+        : requestedLanguage
+          ? requestedLanguage.toLocaleUpperCase('en-US')
+          : 'Plain text';
+      const className = language ? ` hljs language-${escapeHtml(language)}` : '';
+      return `<figure class="code-block" data-language="${escapeHtml(language || 'text')}"><figcaption>${escapeHtml(label)}</figcaption><pre><code class="${className.trim()}">${highlighted}</code></pre></figure>`;
     };
   renderer.link = function link({ href, title, tokens }) {
       const label = this.parser.parseInline(tokens);
@@ -197,7 +288,7 @@ export function renderMarkdown(markdown: string): string {
     (_match, type: string) => `<blockquote class="markdown-alert alert-${type.toLocaleLowerCase('en-US')}"><p><strong>${type[0]}${type.slice(1).toLocaleLowerCase('en-US')}</strong><br>`,
   );
   return DOMPurify.sanitize(restored, {
-    ADD_ATTR: ['data-wikilink', 'data-external', 'data-footnote-back', 'data-mermaid', 'role', 'aria-label'],
+    ADD_ATTR: ['data-wikilink', 'data-external', 'data-footnote-back', 'data-mermaid', 'data-language', 'role', 'aria-label'],
     FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed', 'form', 'button', 'textarea', 'select'],
     FORBID_ATTR: ['onerror', 'onload', 'onclick', 'srcdoc'],
   });

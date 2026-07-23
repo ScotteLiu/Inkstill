@@ -16,6 +16,9 @@ if (-not $ExecutablePath) {
 $executable = (Resolve-Path -LiteralPath $ExecutablePath).Path
 $packageRoot = Split-Path -Parent $executable
 $asarPath = Join-Path $packageRoot "resources\app.asar"
+$tempRoot = [IO.Path]::GetFullPath([IO.Path]::GetTempPath())
+$runtimeUserData = Join-Path $tempRoot ("inkstill-runtime-" + [guid]::NewGuid().ToString("N"))
+New-Item -ItemType Directory -Path $runtimeUserData -Force | Out-Null
 $existingIds = @(
   Get-CimInstance Win32_Process |
     Where-Object { $_.ExecutablePath -eq $executable } |
@@ -25,7 +28,10 @@ $startedIds = @()
 $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
 
 try {
-  $rootProcess = Start-Process -FilePath $executable -PassThru
+  $rootProcess = Start-Process `
+    -FilePath $executable `
+    -ArgumentList "--user-data-dir=$runtimeUserData" `
+    -PassThru
   $startupMs = $null
   while ($stopwatch.ElapsedMilliseconds -lt 10000) {
     Start-Sleep -Milliseconds 50
@@ -115,5 +121,9 @@ try {
   }
   if ($startedIds.Count -gt 0) {
     Stop-Process -Id $startedIds -Force -ErrorAction SilentlyContinue
+  }
+  $resolvedRuntimeUserData = [IO.Path]::GetFullPath($runtimeUserData)
+  if ($resolvedRuntimeUserData.StartsWith($tempRoot, [StringComparison]::OrdinalIgnoreCase)) {
+    Remove-Item -LiteralPath $resolvedRuntimeUserData -Recurse -Force -ErrorAction SilentlyContinue
   }
 }

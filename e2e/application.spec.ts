@@ -414,6 +414,10 @@ test('launches the real packaged application with production isolation', async (
     productName: string;
   };
   const userData = await mkdtemp(join(tmpdir(), 'markdown-editor-packaged-e2e-'));
+  const firstShellDocument = join(userData, 'opened-from-shell.md');
+  const secondShellDocument = join(userData, 'opened-in-running-app.markdown');
+  await writeFile(firstShellDocument, '# Opened from Windows\n\nFirst launch file argument.', 'utf8');
+  await writeFile(secondShellDocument, '# Opened in running app\n\nSecond instance file argument.', 'utf8');
   const executablePath = process.env.MARKDOWN_EDITOR_PACKAGED_EXE ?? join(
     process.cwd(),
     'out',
@@ -425,7 +429,9 @@ test('launches the real packaged application with production isolation', async (
     `--user-data-dir=${userData}`,
     '--remote-debugging-address=127.0.0.1',
     `--remote-debugging-port=${cdpPort}`,
+    firstShellDocument,
   ], { stdio: 'ignore', windowsHide: true });
+  let secondProcess: ChildProcess | null = null;
   let browser: Awaited<ReturnType<typeof chromium.connectOverCDP>> | null = null;
 
   try {
@@ -436,6 +442,8 @@ test('launches the real packaged application with production isolation', async (
     await expect.poll(() => context.pages().length).toBeGreaterThan(0);
     const page = context.pages()[0];
     await expect(page.locator('.cm-editor')).toBeVisible();
+    await expect(page.locator('.document-title')).toContainText('opened-from-shell.md');
+    await expect(page.locator('.cm-content')).toContainText('First launch file argument.');
 
     const rendererGlobals = await page.evaluate(() => ({
       nodeRequire: typeof (globalThis as { require?: unknown }).require,
@@ -454,8 +462,16 @@ test('launches the real packaged application with production isolation', async (
     await page.keyboard.press('Control+End');
     await page.keyboard.type(`\n\n${marker}`);
     await expect(content).toContainText(marker);
+
+    secondProcess = spawn(executablePath, [
+      `--user-data-dir=${userData}`,
+      secondShellDocument,
+    ], { stdio: 'ignore', windowsHide: true });
+    await expect(page.locator('.document-title')).toContainText('opened-in-running-app.markdown');
+    await expect(page.locator('.cm-content')).toContainText('Second instance file argument.');
   } finally {
     await browser?.close();
+    if (secondProcess) await terminateChild(secondProcess);
     await terminateChild(packagedProcess);
     await removeUserData(userData);
   }

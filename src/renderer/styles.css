@@ -469,7 +469,7 @@ button:focus-visible,
 .workspace {
   position: relative;
   display: grid;
-  grid-template-rows: 52px auto auto minmax(0, 1fr) 29px;
+  grid-template-rows: 52px auto auto minmax(0, 1fr) 36px;
   min-width: 0;
   min-height: 0;
   margin: 8px 8px 8px 0;
@@ -662,6 +662,7 @@ button:focus-visible,
 }
 
 .toolbar-button,
+.code-language-select,
 .command-toggle,
 .writing-toggle,
 .source-toggle,
@@ -686,6 +687,31 @@ button:focus-visible,
 .toolbar-button.is-active {
   background: var(--accent-wash);
   color: var(--accent);
+}
+
+.code-language-select {
+  width: 59px;
+  height: 29px;
+  padding: 0 19px 0 7px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--ink-muted);
+  cursor: pointer;
+  font: 600 11px/1 var(--ui-font);
+}
+
+.code-language-select:hover,
+.code-language-select:focus-visible {
+  border-color: var(--line);
+  background: var(--accent-wash);
+  color: var(--accent);
+  outline: none;
+}
+
+.code-language-select:disabled {
+  cursor: default;
+  opacity: 0.45;
 }
 
 .toolbar-divider {
@@ -1334,6 +1360,69 @@ kbd {
   line-height: 1.6;
 }
 
+.markdown-preview .code-block {
+  position: relative;
+  max-width: var(--editor-width);
+  margin-block: 1.4em;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--code-bg);
+}
+
+.markdown-preview .code-block figcaption {
+  padding: 8px 13px 7px;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink-faint);
+  font: 650 10px/1.2 var(--ui-font);
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+}
+
+.markdown-preview .code-block pre {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.markdown-preview .hljs-keyword,
+.markdown-preview .hljs-selector-tag,
+.markdown-preview .hljs-literal,
+.markdown-preview .hljs-section,
+.markdown-preview .hljs-link {
+  color: #98633f;
+}
+
+.markdown-preview .hljs-string,
+.markdown-preview .hljs-title,
+.markdown-preview .hljs-name,
+.markdown-preview .hljs-type,
+.markdown-preview .hljs-attribute,
+.markdown-preview .hljs-symbol,
+.markdown-preview .hljs-bullet,
+.markdown-preview .hljs-addition {
+  color: var(--accent);
+}
+
+.markdown-preview .hljs-number,
+.markdown-preview .hljs-built_in,
+.markdown-preview .hljs-variable,
+.markdown-preview .hljs-template-variable {
+  color: #7f5794;
+}
+
+.markdown-preview .hljs-comment,
+.markdown-preview .hljs-quote,
+.markdown-preview .hljs-meta {
+  color: var(--ink-faint);
+  font-style: italic;
+}
+
+.markdown-preview .hljs-deletion {
+  color: var(--danger);
+}
+
 .markdown-preview table {
   width: min(100%, var(--editor-width));
   border-spacing: 0;
@@ -1558,24 +1647,51 @@ kbd {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 0 15px;
+  gap: 18px;
+  padding: 0 13px;
   border-top: 1px solid var(--line);
+  background: color-mix(in srgb, var(--panel) 58%, var(--surface));
   color: var(--ink-faint);
-  font-size: 12px;
+  font: 11px/1 var(--ui-font);
   user-select: text;
 }
 
-.statusbar > span {
+.status-message {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
   overflow: hidden;
+  color: var(--ink-muted);
+  font-weight: 560;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.statusbar div {
+.status-message i {
+  width: 6px;
+  height: 6px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-wash);
+}
+
+.status-metrics {
   display: flex;
   flex: 0 0 auto;
-  gap: 12px;
+  align-items: center;
+  height: 100%;
+}
+
+.status-metrics > span {
+  padding: 0 9px;
+  border-left: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.status-metrics > span:first-child {
+  border-left: 0;
 }
 
 .warning-text {
@@ -2123,7 +2239,7 @@ kbd {
     gap: 7px;
   }
 
-  .status-line-count {
+  .status-document-size {
     display: none;
   }
 

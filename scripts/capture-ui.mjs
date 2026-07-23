@@ -130,6 +130,13 @@ try {
     '',
     '$$E = mc^2$$',
     '',
+    String.raw`[ M_z(y,x)=\operatorname{median}_{(u,v)\in 3\times3} I_z(y+v,x+u) ]`,
+    '',
+    '```python',
+    'def median(values):',
+    '    return sorted(values)[len(values) // 2]',
+    '```',
+    '',
     'Water is H~2~O :sparkles:',
     '',
     '```mermaid',
@@ -140,9 +147,13 @@ try {
   await page.keyboard.press('Control+Home');
   await page.getByRole('button', { name: 'Split' }).click();
   await page.locator('.markdown-preview h1').waitFor({ state: 'visible' });
+  await page.locator('.markdown-preview .code-block .hljs').waitFor({ state: 'visible' });
+  await page.locator('.markdown-preview .math-block').nth(1).waitFor({ state: 'visible' });
   await page.locator('.markdown-preview .mermaid svg').waitFor({ state: 'visible' });
   await page.waitForTimeout(650);
   await page.screenshot({ path: join(outputDirectory, 'feature-split-light.png'), animations: 'disabled' });
+  await page.locator('.markdown-preview .code-block').scrollIntoViewIfNeeded();
+  await page.screenshot({ path: join(outputDirectory, 'feature-code-math-light.png'), animations: 'disabled' });
 
   await page.keyboard.press('Control+t');
   await page.getByRole('dialog', { name: 'Build a table' }).waitFor({ state: 'visible' });

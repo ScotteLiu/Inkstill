@@ -40,6 +40,25 @@ describe('renderMarkdown', () => {
     expect(html).toContain('graph TD');
   });
 
+  it('highlights fenced code and labels its language', () => {
+    const html = renderMarkdown('```python\nvalue = len(items)\n```');
+    expect(html).toContain('class="code-block"');
+    expect(html).toContain('<figcaption>Python</figcaption>');
+    expect(html).toContain('class="hljs language-python"');
+    expect(html).toContain('hljs-built_in');
+  });
+
+  it('renders bracketed LaTeX display equations from common document exports', () => {
+    const source = String.raw`\[ M_z(y,x)=\operatorname{median}_{(u,v)\in 3\times3} I_z(y+v,x+u) \]`;
+    const plainBracketSource = String.raw`[ M_z(y,x)=\operatorname{median}_{(u,v)\in 3\times3} I_z(y+v,x+u) ]`;
+    for (const markdown of [source, plainBracketSource]) {
+      const html = renderMarkdown(markdown);
+      expect(html).toContain('class="math-block"');
+      expect(html).toContain('class="katex"');
+      expect(html).not.toContain('<p>[ M_z');
+    }
+  });
+
   it('renders common document extensions', () => {
     const html = renderMarkdown([
       '---',
