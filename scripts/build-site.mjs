@@ -65,6 +65,10 @@ for (const file of localizedPages) {
   if (!content.includes('class="language-menu"')) {
     throw new Error(`${file} is missing the language menu`);
   }
+  if (!content.includes('class="skip-link" href="#main-content"')
+    || !content.includes('<main id="main-content">')) {
+    throw new Error(`${file} is missing keyboard skip navigation`);
+  }
   if ((content.match(/<section(?:\s|>)/g) ?? []).length !== 6) {
     throw new Error(`${file} does not contain the complete six-section landing page`);
   }
@@ -77,6 +81,14 @@ for (const file of localizedPages) {
   if (!content.includes('property="og:image:width" content="1280"')
     || !content.includes('property="og:image:height" content="640"')) {
     throw new Error(`${file} is missing social image dimensions`);
+  }
+  if (!content.includes('property="og:image:alt"')
+    || !content.includes('name="twitter:image"')) {
+    throw new Error(`${file} is missing accessible social sharing metadata`);
+  }
+  if (!content.includes('fetchpriority="high" decoding="async"')
+    || (content.match(/decoding="async"/g) ?? []).length < 3) {
+    throw new Error(`${file} is missing optimized screenshot loading`);
   }
 }
 
