@@ -137,11 +137,13 @@ Windows-only while unsigned macOS/Linux candidates complete hardware validation.
 Cloud sync, real-time collaboration, hosted publishing, and online AI accounts
 are not represented as features of this local editor.
 
-## License and credits
+## License and contributors
 
 Inkstill is open source under the [MIT License](LICENSE).
 
 Copyright © 2026 Scotte Liu.
 
 - **Scotte Liu** — Creator, copyright holder, and lead developer
-- **OpenAI Codex** — Development assistance
+- **OpenAI Codex** — AI development contributor
+
+See the full [contributors list](CONTRIBUTORS.md) for contribution details.
