@@ -62,15 +62,27 @@ const config: ForgeConfig = {
     }),
     new MakerDeb({
       options: {
+        name: 'inkstill',
+        productName: 'Inkstill',
+        genericName: 'Markdown Editor',
+        bin: 'Inkstill',
         maintainer: 'Scotte Liu',
         homepage: 'https://github.com/ScotteLiu/Inkstill',
         icon: 'assets/icon.png',
+        categories: ['Office', 'Utility'],
+        mimeType: ['text/markdown', 'text/plain'],
       },
     }),
     new MakerRpm({
       options: {
+        name: 'inkstill',
+        productName: 'Inkstill',
+        genericName: 'Markdown Editor',
+        bin: 'Inkstill',
         homepage: 'https://github.com/ScotteLiu/Inkstill',
         icon: 'assets/icon.png',
+        categories: ['Office', 'Utility'],
+        mimeType: ['text/markdown', 'text/plain'],
       },
     }),
     new MakerZIP({}, ['win32', 'darwin', 'linux']),

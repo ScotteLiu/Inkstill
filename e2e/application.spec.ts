@@ -8,6 +8,9 @@ import { _electron as electron, chromium, expect, test } from '@playwright/test'
 
 import { serializeRecovery } from '../src/main/recovery/recoveryPrimitives';
 
+const primaryModifier = process.platform === 'darwin' ? 'Meta' : 'Control';
+const redoShortcut = process.platform === 'darwin' ? 'Meta+Shift+z' : 'Control+y';
+
 function testEnvironment(userData: string): Record<string, string> {
   const inherited = Object.fromEntries(
     Object.entries(process.env).filter(
@@ -212,7 +215,7 @@ test('launches a sandboxed editor and keeps Markdown editable', async () => {
     await page.keyboard.type('\n\n**smoke test**');
     await page.keyboard.type('\n\nshortcut');
     await page.keyboard.press('Control+Shift+ArrowLeft');
-    await page.keyboard.press('Control+b');
+    await page.keyboard.press(`${primaryModifier}+b`);
     await expect(page.locator('.document-title')).toContainText('Untitled.md');
     await expect(page.locator('.document-title')).toContainText('Unsaved');
 
@@ -223,10 +226,10 @@ test('launches a sandboxed editor and keeps Markdown editable', async () => {
     await expect(content).toBeFocused();
     await expect(content).toContainText('**smoke test**');
     await expect(content).toContainText('**shortcut**');
-    await page.keyboard.press('Control+z');
+    await page.keyboard.press(`${primaryModifier}+z`);
     await expect(content).not.toContainText('**shortcut**');
     await expect(content).toContainText('shortcut');
-    await page.keyboard.press('Control+y');
+    await page.keyboard.press(redoShortcut);
     await expect(content).toContainText('**shortcut**');
 
     expect(pageErrors).toEqual([]);
@@ -283,14 +286,14 @@ test('renders rich Markdown, searches commands, and preserves multiple tabs', as
     await expect(preview.locator('script')).toHaveCount(0);
     await expect(preview.locator('.raw-html')).toContainText('<script>');
 
-    await page.keyboard.press('Control+p');
+    await page.keyboard.press(`${primaryModifier}+p`);
     const palette = page.getByRole('dialog', { name: 'Command palette' });
     await expect(palette).toBeVisible();
     await palette.getByRole('searchbox', { name: 'Search commands' }).fill('cheat');
     await expect(palette.getByRole('option', { name: /Markdown cheat sheet/ })).toBeVisible();
     await page.keyboard.press('Escape');
 
-    await page.keyboard.press('Control+t');
+    await page.keyboard.press(`${primaryModifier}+t`);
     const tableBuilder = page.getByRole('dialog', { name: 'Build a table' });
     await expect(tableBuilder).toBeVisible();
     await tableBuilder.getByLabel('Columns').fill('2');
@@ -300,7 +303,7 @@ test('renders rich Markdown, searches commands, and preserves multiple tabs', as
     await tableBuilder.getByRole('button', { name: 'Insert table' }).click();
     await expect(content).toContainText('| Feature | Status |');
 
-    await page.keyboard.press('Control+n');
+    await page.keyboard.press(`${primaryModifier}+n`);
     await expect(page.locator('.document-tab')).toHaveCount(2);
     await content.click();
     await page.keyboard.insertText('Second tab');
