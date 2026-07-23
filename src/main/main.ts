@@ -301,6 +301,22 @@ function sendMenuCommand(command: MenuCommand): void {
   mainWindow.webContents.send(IPC.menuCommand, menuCommandSchema.parse(command));
 }
 
+const APPLICATION_ZOOM_FACTORS = [0.5, 0.67, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2];
+
+function changeApplicationZoom(direction: -1 | 0 | 1): void {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  if (direction === 0) {
+    mainWindow.webContents.setZoomFactor(1);
+    return;
+  }
+
+  const current = mainWindow.webContents.getZoomFactor();
+  const next = direction > 0
+    ? APPLICATION_ZOOM_FACTORS.find((factor) => factor > current + 0.001)
+    : [...APPLICATION_ZOOM_FACTORS].reverse().find((factor) => factor < current - 0.001);
+  if (next !== undefined) mainWindow.webContents.setZoomFactor(next);
+}
+
 // Keep in sync with the Open dialog filters (documentService) and the
 // workspace scanner: every extension the app can open must also be accepted
 // when the operating system hands us a file.
@@ -835,6 +851,12 @@ function buildApplicationMenu(): void {
       label: 'View',
       submenu: [
         {
+          label: 'Toggle Sidebar',
+          accelerator: `${modifier}+Shift+L`,
+          click: () => sendMenuCommand('toggle-sidebar'),
+        },
+        { type: 'separator' },
+        {
           label: 'Source Mode',
           accelerator: `${modifier}+/`,
           click: () => sendMenuCommand('toggle-source'),
@@ -844,9 +866,9 @@ function buildApplicationMenu(): void {
         { label: 'Split Preview', accelerator: `${modifier}+2`, click: () => sendMenuCommand('view-split') },
         { label: 'Preview', accelerator: `${modifier}+3`, click: () => sendMenuCommand('view-preview') },
         { type: 'separator' },
-        { role: 'resetZoom', label: 'Actual Size' },
-        { role: 'zoomIn', label: 'Zoom In' },
-        { role: 'zoomOut', label: 'Zoom Out' },
+        { label: 'Actual Size', accelerator: `${modifier}+0`, click: () => changeApplicationZoom(0) },
+        { label: 'Zoom In', accelerator: `${modifier}+Plus`, click: () => changeApplicationZoom(1) },
+        { label: 'Zoom Out', accelerator: `${modifier}+-`, click: () => changeApplicationZoom(-1) },
         { role: 'togglefullscreen', label: 'Full Screen' },
         ...(isDevelopment
           ? ([{ role: 'toggleDevTools', label: 'Developer Tools' }] as Electron.MenuItemConstructorOptions[])
@@ -1320,6 +1342,22 @@ async function createMainWindow(): Promise<void> {
   mainWindow.webContents.on('will-navigate', (event, targetUrl) => {
     const currentUrl = mainWindow?.webContents.getURL();
     if (targetUrl !== currentUrl) event.preventDefault();
+  });
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if (input.type !== 'keyDown' || input.alt) return;
+    const primaryModifier = process.platform === 'darwin' ? input.meta : input.control;
+    if (!primaryModifier) return;
+
+    if (input.key === '+' || input.key === '=' || input.code === 'NumpadAdd') {
+      event.preventDefault();
+      changeApplicationZoom(1);
+    } else if (input.key === '-' || input.code === 'NumpadSubtract') {
+      event.preventDefault();
+      changeApplicationZoom(-1);
+    } else if (input.key === '0' || input.code === 'Numpad0') {
+      event.preventDefault();
+      changeApplicationZoom(0);
+    }
   });
   mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
 

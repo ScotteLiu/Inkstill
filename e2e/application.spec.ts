@@ -115,6 +115,39 @@ test('launches a sandboxed editor and keeps Markdown editable', async () => {
       expect(updateMenuAvailable).toBe(true);
     }
 
+    await electronApp.evaluate(({ Menu }) => {
+      const zoomIn = Menu.getApplicationMenu()?.items
+        .find((item) => item.label === 'View')
+        ?.submenu?.items.find((item) => item.label === 'Zoom In');
+      (zoomIn as unknown as { click: () => void }).click();
+    });
+    await expect.poll(() => electronApp.evaluate(({ BrowserWindow }) =>
+      BrowserWindow.getAllWindows()[0].webContents.getZoomFactor())).toBeGreaterThan(1);
+    await electronApp.evaluate(({ Menu }) => {
+      const actualSize = Menu.getApplicationMenu()?.items
+        .find((item) => item.label === 'View')
+        ?.submenu?.items.find((item) => item.label === 'Actual Size');
+      (actualSize as unknown as { click: () => void }).click();
+    });
+    await expect.poll(() => electronApp.evaluate(({ BrowserWindow }) =>
+      BrowserWindow.getAllWindows()[0].webContents.getZoomFactor())).toBe(1);
+
+    const appShell = page.locator('.app-shell');
+    const sidebar = page.locator('.sidebar');
+    await page.getByRole('button', { name: 'Hide sidebar' }).first().click();
+    await expect(appShell).toHaveClass(/sidebar-collapsed/);
+    await expect(sidebar).toHaveAttribute('aria-hidden', 'true');
+    await page.getByRole('button', { name: 'Show sidebar' }).click();
+    await expect(appShell).toHaveClass(/sidebar-open/);
+    const pinSidebar = page.getByRole('button', { name: 'Unpin sidebar' });
+    await pinSidebar.click();
+    await expect(page.getByRole('button', { name: 'Pin sidebar' })).toHaveAttribute('aria-pressed', 'false');
+    await page.mouse.move(700, 400);
+    await expect(appShell).toHaveClass(/sidebar-collapsed/);
+    await page.getByRole('button', { name: 'Show sidebar' }).click();
+    await page.getByRole('button', { name: 'Pin sidebar' }).click();
+    await expect(page.getByRole('button', { name: 'Unpin sidebar' })).toHaveAttribute('aria-pressed', 'true');
+
     await electronApp.evaluate(({ BrowserWindow }) => {
       const current = BrowserWindow.getAllWindows()[0];
       current.setSize(760, 560);

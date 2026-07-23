@@ -55,6 +55,11 @@ interface EditorPreferences {
   writingGoal: number;
 }
 
+interface SidebarPreferences {
+  open: boolean;
+  pinned: boolean;
+}
+
 interface OpenDocumentTab {
   document: DocumentSnapshot;
   pendingEolConversion: '\n' | '\r\n' | null;
@@ -95,6 +100,18 @@ function loadEditorPreferences(): EditorPreferences {
     };
   } catch {
     return DEFAULT_EDITOR_PREFERENCES;
+  }
+}
+
+function loadSidebarPreferences(): SidebarPreferences {
+  try {
+    const stored = JSON.parse(window.localStorage.getItem('inkstill.sidebar-preferences') ?? '{}') as Partial<SidebarPreferences>;
+    return {
+      open: stored.open !== false,
+      pinned: stored.pinned !== false,
+    };
+  } catch {
+    return { open: true, pinned: true };
   }
 }
 
@@ -381,6 +398,7 @@ export default function App(): React.JSX.Element {
   const mixedDecisionPendingRef = useRef(false);
   const eolGateRef = useRef<HTMLElement>(null);
   const workspaceSearchRef = useRef<HTMLInputElement>(null);
+  const sidebarCloseTimerRef = useRef<number | null>(null);
 
   const [document, setDocument] = useState<DocumentSnapshot | null>(null);
   const [dirty, setDirtyState] = useState(false);
@@ -396,6 +414,7 @@ export default function App(): React.JSX.Element {
   const [tableBuilderOpen, setTableBuilderOpen] = useState(false);
   const [workspace, setWorkspace] = useState<WorkspaceSnapshot | null>(null);
   const [sidebarPanel, setSidebarPanel] = useState<'files' | 'outline' | 'links'>('outline');
+  const [sidebarPreferences, setSidebarPreferences] = useState<SidebarPreferences>(loadSidebarPreferences);
   const [workspaceQuery, setWorkspaceQuery] = useState('');
   const [outlineQuery, setOutlineQuery] = useState('');
   const [activeEditorLine, setActiveEditorLine] = useState(1);
@@ -428,6 +447,42 @@ export default function App(): React.JSX.Element {
       // Preferences are optional; document editing must continue if storage is unavailable.
     }
   }, [editorPreferences]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem('inkstill.sidebar-preferences', JSON.stringify(sidebarPreferences));
+    } catch {
+      // Sidebar preferences are optional.
+    }
+  }, [sidebarPreferences]);
+
+  useEffect(() => {
+    const compactLayout = window.matchMedia('(max-width: 780px)');
+    const adaptSidebar = (event: MediaQueryList | MediaQueryListEvent): void => {
+      if (event.matches) setSidebarPreferences({ open: false, pinned: false });
+    };
+    adaptSidebar(compactLayout);
+    compactLayout.addEventListener('change', adaptSidebar);
+    return () => compactLayout.removeEventListener('change', adaptSidebar);
+  }, []);
+
+  const cancelSidebarAutoHide = useCallback((): void => {
+    if (sidebarCloseTimerRef.current !== null) {
+      window.clearTimeout(sidebarCloseTimerRef.current);
+      sidebarCloseTimerRef.current = null;
+    }
+  }, []);
+
+  const scheduleSidebarAutoHide = useCallback((): void => {
+    cancelSidebarAutoHide();
+    if (sidebarPreferences.pinned) return;
+    sidebarCloseTimerRef.current = window.setTimeout(() => {
+      setSidebarPreferences((current) => ({ ...current, open: false }));
+      sidebarCloseTimerRef.current = null;
+    }, 240);
+  }, [cancelSidebarAutoHide, sidebarPreferences.pinned]);
+
+  useEffect(() => cancelSidebarAutoHide, [cancelSidebarAutoHide]);
 
   useEffect(() => {
     window.document.documentElement.dataset.theme = editorPreferences.theme;
@@ -1305,6 +1360,10 @@ export default function App(): React.JSX.Element {
         void saveAllDocumentsForClose();
       },
       'save-as': () => void saveDocument(true),
+      'toggle-sidebar': () => {
+        cancelSidebarAutoHide();
+        setSidebarPreferences((current) => ({ ...current, open: !current.open }));
+      },
       'toggle-source': toggleSourceMode,
       'view-editor': () => changeWorkspaceView('editor'),
       'view-split': () => changeWorkspaceView('split'),
@@ -1676,11 +1735,17 @@ export default function App(): React.JSX.Element {
   }
 
   return (
-    <main className="app-shell">
+    <main className={`app-shell${sidebarPreferences.open ? ' sidebar-open' : ' sidebar-collapsed'}${sidebarPreferences.pinned ? ' sidebar-pinned' : ' sidebar-auto'}`}>
       <aside
         className="sidebar"
-        inert={recoveryOpen || conflictReviewOpen || commandPaletteOpen || cheatSheetOpen || tableBuilderOpen}
-        aria-hidden={recoveryOpen || conflictReviewOpen || commandPaletteOpen || cheatSheetOpen || tableBuilderOpen || undefined}
+        inert={!sidebarPreferences.open || recoveryOpen || conflictReviewOpen || commandPaletteOpen || cheatSheetOpen || tableBuilderOpen}
+        aria-hidden={!sidebarPreferences.open || recoveryOpen || conflictReviewOpen || commandPaletteOpen || cheatSheetOpen || tableBuilderOpen || undefined}
+        onMouseEnter={cancelSidebarAutoHide}
+        onMouseLeave={scheduleSidebarAutoHide}
+        onFocusCapture={cancelSidebarAutoHide}
+        onBlurCapture={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget)) scheduleSidebarAutoHide();
+        }}
       >
         <header className="brand">
           <span className="brand-mark" aria-hidden="true">
@@ -1689,6 +1754,33 @@ export default function App(): React.JSX.Element {
             </svg>
           </span>
           <strong>Inkstill</strong>
+          <div className="sidebar-controls">
+            <button
+              type="button"
+              className={sidebarPreferences.pinned ? 'is-active' : ''}
+              aria-pressed={sidebarPreferences.pinned}
+              aria-label={sidebarPreferences.pinned ? 'Unpin sidebar' : 'Pin sidebar'}
+              title={sidebarPreferences.pinned ? 'Unpin for auto-hide' : 'Pin sidebar open'}
+              onClick={() => {
+                cancelSidebarAutoHide();
+                setSidebarPreferences((current) => ({ open: true, pinned: !current.pinned }));
+              }}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M8 3h8l-1 6 3 3v2h-5v7l-1 1-1-1v-7H6v-2l3-3-1-6Zm2.3 2 .8 4.8L9 12h6l-2.1-2.2.8-4.8h-3.4Z" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              aria-label="Hide sidebar"
+              title={`Hide sidebar (${shortcutModifier}+Shift+L)`}
+              onClick={() => setSidebarPreferences((current) => ({ ...current, open: false }))}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m14.7 6.3 1.4 1.4-4.3 4.3 4.3 4.3-1.4 1.4L9 12l5.7-5.7Z" />
+              </svg>
+            </button>
+          </div>
         </header>
 
         <div className="file-actions">
@@ -1827,6 +1919,21 @@ export default function App(): React.JSX.Element {
       >
         <header className="topbar">
           <div className="document-title">
+            <button
+              className="sidebar-toggle"
+              type="button"
+              aria-expanded={sidebarPreferences.open}
+              aria-label={sidebarPreferences.open ? 'Hide sidebar' : 'Show sidebar'}
+              title={`${sidebarPreferences.open ? 'Hide' : 'Show'} sidebar (${shortcutModifier}+Shift+L)`}
+              onClick={() => {
+                cancelSidebarAutoHide();
+                setSidebarPreferences((current) => ({ ...current, open: !current.open }));
+              }}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 5h16v14H4V5Zm2 2v10h3V7H6Zm5 0v10h7V7h-7Z" />
+              </svg>
+            </button>
             <span title={document.path ?? document.displayName}>{document.displayName}</span>
             {dirty && (
               <span className="unsaved-label" aria-label="Unsaved">

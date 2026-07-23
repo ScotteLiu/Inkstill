@@ -50,6 +50,7 @@ export const menuCommandSchema = z.enum([
   'save',
   'save-and-close',
   'save-as',
+  'toggle-sidebar',
   'toggle-source',
   'view-editor',
   'view-split',

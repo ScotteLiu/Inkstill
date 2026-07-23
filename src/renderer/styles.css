@@ -212,20 +212,35 @@ button:focus-visible,
 .app-shell {
   display: grid;
   grid-template-columns: 236px minmax(0, 1fr);
+  position: relative;
   width: 100%;
   height: 100%;
+  overflow: hidden;
   background: var(--app-bg);
+  transition: grid-template-columns 180ms ease;
+}
+
+.app-shell.sidebar-collapsed {
+  grid-template-columns: 0 minmax(0, 1fr);
 }
 
 .sidebar {
   display: flex;
   flex-direction: column;
+  width: 236px;
   min-width: 0;
   padding: 22px 14px 16px;
   overflow-y: auto;
   background: var(--sidebar);
   border-right: 1px solid var(--line);
   scrollbar-width: thin;
+  transition: opacity 150ms ease, transform 180ms ease;
+}
+
+.app-shell.sidebar-collapsed .sidebar {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-100%);
 }
 
 .brand {
@@ -255,8 +270,51 @@ button:focus-visible,
 }
 
 .brand strong {
+  min-width: 0;
+  margin-right: auto;
   font-size: 15px;
   letter-spacing: -0.01em;
+}
+
+.sidebar-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+}
+
+.sidebar-controls button,
+.sidebar-toggle {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+
+.sidebar-controls button:hover,
+.sidebar-controls button.is-active,
+.sidebar-toggle:hover {
+  background: var(--accent-wash);
+  color: var(--accent);
+}
+
+.sidebar-controls button:focus-visible,
+.sidebar-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.sidebar-controls svg,
+.sidebar-toggle svg {
+  width: 17px;
+  height: 17px;
+  fill: currentColor;
 }
 
 .file-actions {
@@ -633,6 +691,11 @@ button:focus-visible,
   min-width: 0;
   color: var(--ink-muted);
   font-size: 13px;
+}
+
+.sidebar-toggle {
+  flex: 0 0 auto;
+  margin-left: -8px;
 }
 
 .document-title span {
@@ -2075,26 +2138,32 @@ kbd {
 }
 
 @media (max-width: 780px) {
-  .app-shell {
-    grid-template-columns: 156px minmax(0, 1fr);
+  .app-shell,
+  .app-shell.sidebar-collapsed {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .sidebar {
-    padding-inline: 10px;
+    position: absolute;
+    z-index: 40;
+    inset: 0 auto 0 0;
+    width: min(236px, calc(100vw - 52px));
+    padding-inline: 14px;
+    box-shadow: 16px 0 36px rgba(27, 36, 32, 0.16);
   }
 
   .brand {
-    gap: 8px;
-    padding-inline: 4px;
+    gap: 11px;
+    padding-inline: 8px;
   }
 
   .brand-mark {
-    width: 30px;
-    height: 30px;
+    width: 34px;
+    height: 34px;
   }
 
   .file-actions {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
   }
 
   .topbar-actions {
@@ -2282,6 +2351,67 @@ kbd {
 
   .status-document-size {
     display: none;
+  }
+
+  .app-shell,
+  .app-shell.sidebar-collapsed {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sidebar {
+    width: min(236px, calc(100vw - 52px));
+    padding: 18px 14px 14px;
+  }
+
+  .brand {
+    justify-content: initial;
+    gap: 11px;
+    padding: 0 8px 18px;
+  }
+
+  .brand strong,
+  .outline-section {
+    display: initial;
+  }
+
+  .outline-section {
+    display: flex;
+  }
+
+  .brand-mark {
+    width: 34px;
+    height: 34px;
+  }
+
+  .file-actions {
+    grid-template-columns: 1fr 1fr;
+    gap: 7px;
+    padding: 0 2px 20px;
+  }
+
+  .file-actions button {
+    display: block;
+    height: auto;
+    padding: 8px 7px;
+    font-size: inherit;
+  }
+
+  .file-actions button::before,
+  .recovery-entry span::before {
+    content: none;
+  }
+
+  .recovery-entry {
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 8px;
+    width: auto;
+    margin-inline: 2px;
+    padding: 8px 10px;
+  }
+
+  .recovery-entry span {
+    font-size: inherit;
   }
 
   .cheat-sheet > div {
