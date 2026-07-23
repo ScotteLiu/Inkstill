@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { renderMarkdown } from './renderMarkdown';
 
@@ -12,6 +12,9 @@ interface MarkdownPreviewProps {
 
 let diagramSequence = 0;
 let mermaidPromise: Promise<(typeof import('mermaid'))['default']> | null = null;
+const PREVIEW_UPDATE_DELAY_MS = 80;
+const LARGE_PREVIEW_UPDATE_DELAY_MS = 180;
+const LARGE_PREVIEW_THRESHOLD = 500_000;
 
 function loadMermaid(): Promise<(typeof import('mermaid'))['default']> {
   if (!mermaidPromise) {
@@ -39,7 +42,26 @@ export function MarkdownPreview({
   onOpenWikiLink,
 }: MarkdownPreviewProps): React.JSX.Element {
   const hostRef = useRef<HTMLElement>(null);
-  const html = useMemo(() => renderMarkdown(content), [content]);
+  const [renderedSource, setRenderedSource] = useState({ content, documentId });
+  const source = renderedSource.documentId === documentId
+    ? renderedSource.content
+    : content;
+  const html = useMemo(() => renderMarkdown(source), [source]);
+
+  useEffect(() => {
+    if (renderedSource.documentId !== documentId) {
+      setRenderedSource({ content, documentId });
+      return;
+    }
+    if (renderedSource.content === content) return;
+    const delay = content.length >= LARGE_PREVIEW_THRESHOLD
+      ? LARGE_PREVIEW_UPDATE_DELAY_MS
+      : PREVIEW_UPDATE_DELAY_MS;
+    const timer = window.setTimeout(() => {
+      setRenderedSource({ content, documentId });
+    }, delay);
+    return () => window.clearTimeout(timer);
+  }, [content, documentId, renderedSource.content, renderedSource.documentId]);
 
   useEffect(() => {
     const host = hostRef.current;

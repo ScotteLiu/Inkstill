@@ -27,6 +27,7 @@
     "make": "pnpm release:metadata && electron-forge make",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "test:runtime": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/runtime-budget.ps1",
     "test:visual": "node scripts/capture-ui.mjs",
     "test:installer": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/installer-smoke.ps1",
     "test:watch": "vitest",
@@ -35,8 +36,8 @@
     "gate:candidate": "node scripts/release-gate.mjs --require-installer",
     "gate:public": "node scripts/release-gate.mjs --require-installer --require-signature",
     "verify:source": "pnpm typecheck && pnpm test && pnpm verify:supply-chain",
-    "verify": "pnpm verify:source && pnpm package && pnpm test:e2e",
-    "release:candidate": "pnpm clean:release && pnpm install --frozen-lockfile && pnpm verify:source && pnpm make && pnpm test:e2e && pnpm gate:candidate",
+    "verify": "pnpm verify:source && pnpm package && pnpm test:e2e && pnpm test:runtime",
+    "release:candidate": "pnpm clean:release && pnpm install --frozen-lockfile && pnpm verify:source && pnpm make && pnpm test:e2e && pnpm test:runtime && pnpm gate:candidate",
     "release:public": "pnpm release:candidate && pnpm gate:public && pnpm test:installer -DisposableEnvironment -RequireSignature"
   },
   "dependencies": {

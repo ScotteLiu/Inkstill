@@ -367,6 +367,7 @@ export default function App(): React.JSX.Element {
   const [dirty, setDirtyState] = useState(false);
   const [sourceMode, setSourceMode] = useState(false);
   const [workspaceView, setWorkspaceView] = useState<WorkspaceView>('editor');
+  const workspaceViewRef = useRef<WorkspaceView>('editor');
   const [previewContent, setPreviewContent] = useState('');
   const [previewScrollRatio, setPreviewScrollRatio] = useState(0);
   const [editorPreferences, setEditorPreferences] = useState<EditorPreferences>(loadEditorPreferences);
@@ -413,6 +414,10 @@ export default function App(): React.JSX.Element {
     window.document.documentElement.dataset.theme = editorPreferences.theme;
     window.document.documentElement.dataset.editorWidth = editorPreferences.editorWidth;
   }, [editorPreferences.editorWidth, editorPreferences.theme]);
+
+  useEffect(() => {
+    workspaceViewRef.current = workspaceView;
+  }, [workspaceView]);
 
   useEffect(() => {
     const handleApplicationShortcut = (event: KeyboardEvent): void => {
@@ -1029,7 +1034,9 @@ export default function App(): React.JSX.Element {
     dirtyRef.current = true;
     setDirtyState(true);
     const currentContent = getCurrentContent();
-    setPreviewContent(currentContent);
+    if (workspaceViewRef.current !== 'editor') {
+      setPreviewContent(currentContent);
+    }
     const currentDocument = currentDocumentRef.current;
     if (currentDocument) {
       const updatedDocument = { ...currentDocument, content: currentContent, revision };
@@ -1088,16 +1095,22 @@ export default function App(): React.JSX.Element {
       window.clearTimeout(recoveryTimerRef.current);
     }
     const scheduledDocument = documentId;
-    recoveryTimerRef.current = window.setTimeout(() => {
+    const attemptRecovery = (): void => {
       recoveryTimerRef.current = null;
       if (
         documentIdRef.current !== scheduledDocument ||
-        !dirtyRef.current ||
+        !dirtyRef.current
+      ) return;
+      if (
         editorRef.current?.isComposing() ||
         recoveryInFlightRef.current > 0
-      ) return;
+      ) {
+        recoveryTimerRef.current = window.setTimeout(attemptRecovery, 1000);
+        return;
+      }
       void flushCurrentRecovery();
-    }, 400);
+    };
+    recoveryTimerRef.current = window.setTimeout(attemptRecovery, 400);
   }, [flushCurrentRecovery, getCurrentContent, syncTabs]);
 
   const toggleSourceMode = useCallback((): void => {
@@ -1119,6 +1132,7 @@ export default function App(): React.JSX.Element {
       return;
     }
     setPreviewContent(getCurrentContent());
+    workspaceViewRef.current = next;
     setWorkspaceView(next);
     setStatus(
       next === 'editor'
@@ -1159,6 +1173,7 @@ export default function App(): React.JSX.Element {
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'Unable to export HTML');
     } finally {
+      workspaceViewRef.current = previousView;
       setWorkspaceView(previousView);
     }
   }, [document, waitForRenderedPreview, workspaceView]);
@@ -1173,6 +1188,7 @@ export default function App(): React.JSX.Element {
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'Unable to export PDF');
     } finally {
+      workspaceViewRef.current = previousView;
       setWorkspaceView(previousView);
     }
   }, [document, waitForRenderedPreview, workspaceView]);
@@ -1186,6 +1202,7 @@ export default function App(): React.JSX.Element {
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'Unable to copy HTML');
     } finally {
+      workspaceViewRef.current = previousView;
       setWorkspaceView(previousView);
     }
   }, [waitForRenderedPreview, workspaceView]);
@@ -1358,22 +1375,6 @@ export default function App(): React.JSX.Element {
       removeExternal();
     };
   }, [activateDocument, createInitialDocument, syncTabs]);
-
-  useEffect(() => {
-    const interval = window.setInterval(() => {
-      const documentId = documentIdRef.current;
-      const revision = revisionRef.current;
-      if (
-        !documentId ||
-        !dirtyRef.current ||
-        editorRef.current?.isComposing() ||
-        recoveryInFlightRef.current > 0 ||
-        revision <= lastRecoveryRevisionRef.current
-      ) return;
-      void flushCurrentRecovery();
-    }, 1500);
-    return () => window.clearInterval(interval);
-  }, [flushCurrentRecovery]);
 
   useEffect(() => () => {
     if (analysisTimerRef.current !== null) {
