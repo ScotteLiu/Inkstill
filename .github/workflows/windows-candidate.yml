@@ -8,6 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: write
   contents: write
 
 jobs:
@@ -49,6 +50,10 @@ jobs:
           $portable = "out/make/zip/win32/x64/Inkstill-win32-x64-$version.zip"
           $squirrelPackage = "out/make/squirrel.windows/x64/markdown_editor-$version-full.nupkg"
           $releaseNotes = "docs/RELEASE_NOTES_$($version.Replace('.', '_'))_PREVIEW.md"
+          $updateManifest = Join-Path $env:RUNNER_TEMP "windows-preview.json"
+          node scripts/generate-update-manifest.mjs `
+            --tag "$env:GITHUB_REF_NAME" `
+            --output "$updateManifest"
           gh release create "$env:GITHUB_REF_NAME" `
             "$setup#Windows x64 installer" `
             "$portable#Windows x64 portable" `
@@ -58,7 +63,25 @@ jobs:
             "release/sbom.cdx.json#CycloneDX SBOM" `
             "release/THIRD_PARTY_LICENSES.md#Third-party licenses" `
             "release/build-manifest.json#Build manifest" `
+            "$updateManifest#Windows preview update manifest" `
             --verify-tag `
             --prerelease `
             --title "Inkstill $version Preview" `
             --notes-file "$releaseNotes"
+
+          # Publish the small, fixed-URL update channel only after every release
+          # asset exists. GITHUB_TOKEN pushes do not recursively start workflows,
+          # so Pages is dispatched explicitly after the channel commit.
+          git fetch origin main
+          git switch --force-create main origin/main
+          New-Item -ItemType Directory -Force -Path "site/updates" | Out-Null
+          Copy-Item -LiteralPath "$updateManifest" -Destination "site/updates/windows-preview.json" -Force
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- "site/updates/windows-preview.json"
+          git diff --cached --quiet
+          if ($LASTEXITCODE -ne 0) {
+            git commit -m "Update Windows preview channel to $version"
+            git push origin main
+            gh workflow run pages.yml --ref main
+          }

@@ -29,6 +29,7 @@ const requiredSnippets = [
   ['zh-cn.html', 'hreflang="zh-CN"'],
   ['robots.txt', 'Sitemap: https://scotteliu.github.io/Inkstill/sitemap.xml'],
   ['sitemap.xml', 'https://scotteliu.github.io/Inkstill/zh-cn.html'],
+  ['updates/windows-preview.json', '"schemaVersion": 1'],
 ];
 
 for (const [file, snippet] of requiredSnippets) {
@@ -36,6 +37,22 @@ for (const [file, snippet] of requiredSnippets) {
   if (!content.includes(snippet)) {
     throw new Error(`${file} is missing required content: ${snippet}`);
   }
+}
+
+const updateManifest = JSON.parse(
+  await readFile(resolve(output, 'updates', 'windows-preview.json'), 'utf8'),
+);
+if (
+  updateManifest.product !== 'Inkstill'
+  || updateManifest.channel !== 'preview'
+  || !/^\d+\.\d+\.\d+$/.test(updateManifest.version ?? '')
+  || !/^https:\/\/github\.com\/ScotteLiu\/Inkstill\/releases\/tag\//.test(updateManifest.releaseUrl ?? '')
+  || !/^https:\/\/github\.com\/ScotteLiu\/Inkstill\/releases\/download\//.test(updateManifest.installer?.url ?? '')
+  || !Number.isSafeInteger(updateManifest.installer?.size)
+  || updateManifest.installer.size <= 0
+  || !/^[a-f\d]{64}$/.test(updateManifest.installer?.sha256 ?? '')
+) {
+  throw new Error('updates/windows-preview.json is invalid');
 }
 
 console.log(`GitHub Pages site built at ${output}`);

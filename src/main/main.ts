@@ -54,8 +54,11 @@ import {
 } from './workspace/workspaceService';
 import {
   checksumForAsset,
+  parseUpdateChannelManifest,
+  selectManifestUpdate,
   selectUpdate,
   type PublicRelease,
+  type UpdateChannelManifest,
   type UpdateCandidate,
 } from './updates/updatePrimitives';
 
@@ -347,12 +350,39 @@ async function dispatchNextSystemOpen(): Promise<void> {
 }
 
 const RELEASES_API = 'https://api.github.com/repos/ScotteLiu/Inkstill/releases?per_page=10';
+const UPDATE_MANIFEST_URL = 'https://scotteliu.github.io/Inkstill/updates/windows-preview.json';
 const MAX_RELEASE_RESPONSE_BYTES = 2_000_000;
+const MAX_MANIFEST_RESPONSE_BYTES = 64_000;
 const MAX_CHECKSUM_RESPONSE_BYTES = 256_000;
 const MAX_INSTALLER_BYTES = 250_000_000;
+const AUTOMATIC_UPDATE_INTERVAL_MS = 6 * 60 * 60 * 1000;
+const AUTOMATIC_UPDATE_JITTER_MS = 30 * 60 * 1000;
+
+class UpdateHttpError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly resetAt: Date | null,
+  ) {
+    super(message);
+  }
+}
 
 async function responseText(response: Response, maximumBytes: number): Promise<string> {
-  if (!response.ok) throw new Error(`GitHub returned HTTP ${response.status}.`);
+  if (!response.ok) {
+    const resetSeconds = Number(response.headers.get('x-ratelimit-reset') ?? Number.NaN);
+    const resetAt = Number.isFinite(resetSeconds)
+      ? new Date(resetSeconds * 1000)
+      : null;
+    const resetDetail = resetAt
+      ? ` Try again after ${resetAt.toLocaleString()}.`
+      : '';
+    throw new UpdateHttpError(
+      `The update service returned HTTP ${response.status}.${resetDetail}`,
+      response.status,
+      resetAt,
+    );
+  }
   const text = await response.text();
   if (Buffer.byteLength(text, 'utf8') > maximumBytes) {
     throw new Error('The update response is unexpectedly large.');
@@ -411,9 +441,12 @@ async function downloadVerifiedInstaller(candidate: UpdateCandidate): Promise<st
     Accept: 'application/vnd.github+json',
     'User-Agent': `Inkstill/${app.getVersion()}`,
   };
-  const checksumResponse = await net.fetch(candidate.checksums.browser_download_url, { headers });
-  const checksumText = await responseText(checksumResponse, MAX_CHECKSUM_RESPONSE_BYTES);
-  const expectedHash = checksumForAsset(checksumText, candidate.installer.name);
+  let expectedHash = candidate.expectedSha256 ?? null;
+  if (!expectedHash && candidate.checksums) {
+    const checksumResponse = await net.fetch(candidate.checksums.browser_download_url, { headers });
+    const checksumText = await responseText(checksumResponse, MAX_CHECKSUM_RESPONSE_BYTES);
+    expectedHash = checksumForAsset(checksumText, candidate.installer.name);
+  }
   if (!expectedHash) throw new Error('The release does not contain a checksum for its installer.');
 
   const updateFolder = join(app.getPath('temp'), 'Inkstill', 'updates');
@@ -453,6 +486,9 @@ async function downloadVerifiedInstaller(candidate: UpdateCandidate): Promise<st
       sizeLimit,
       createWriteStream(partial, { flags: 'wx' }),
     );
+    if (downloadedBytes !== candidate.installer.size) {
+      throw new Error('The downloaded installer size does not match the update manifest.');
+    }
     if ((await sha256(partial)) !== expectedHash) {
       throw new Error('The downloaded installer failed SHA-256 verification.');
     }
@@ -469,24 +505,137 @@ function updatePreferencesPath(): string {
   return join(app.getPath('userData'), 'update-preferences.json');
 }
 
-async function readDeclinedUpdateVersion(): Promise<string | null> {
+interface UpdatePreferences {
+  schemaVersion: 1;
+  declinedVersion?: string;
+  manifestEtag?: string;
+  cachedManifest?: UpdateChannelManifest;
+  lastSuccessfulCheckAt?: string;
+  nextAutomaticCheckAt?: string;
+  failureCount?: number;
+}
+
+function emptyUpdatePreferences(): UpdatePreferences {
+  return { schemaVersion: 1 };
+}
+
+async function readUpdatePreferences(): Promise<UpdatePreferences> {
   try {
-    const parsed = JSON.parse(await readFile(updatePreferencesPath(), 'utf8')) as { declinedVersion?: unknown };
-    return typeof parsed.declinedVersion === 'string' ? parsed.declinedVersion : null;
+    const parsed = JSON.parse(await readFile(updatePreferencesPath(), 'utf8')) as Record<string, unknown>;
+    if (parsed.schemaVersion !== 1) return emptyUpdatePreferences();
+    const cachedManifest = parseUpdateChannelManifest(parsed.cachedManifest);
+    return {
+      schemaVersion: 1,
+      ...(typeof parsed.declinedVersion === 'string'
+        ? { declinedVersion: parsed.declinedVersion }
+        : {}),
+      ...(typeof parsed.manifestEtag === 'string'
+        ? { manifestEtag: parsed.manifestEtag }
+        : {}),
+      ...(cachedManifest ? { cachedManifest } : {}),
+      ...(typeof parsed.lastSuccessfulCheckAt === 'string'
+        ? { lastSuccessfulCheckAt: parsed.lastSuccessfulCheckAt }
+        : {}),
+      ...(typeof parsed.nextAutomaticCheckAt === 'string'
+        ? { nextAutomaticCheckAt: parsed.nextAutomaticCheckAt }
+        : {}),
+      ...(typeof parsed.failureCount === 'number'
+        && Number.isInteger(parsed.failureCount)
+        && parsed.failureCount >= 0
+        ? { failureCount: Math.min(parsed.failureCount, 8) }
+        : {}),
+    };
   } catch {
-    return null;
+    return emptyUpdatePreferences();
   }
 }
 
-async function rememberDeclinedUpdateVersion(version: string): Promise<void> {
+async function writeUpdatePreferences(preferences: UpdatePreferences): Promise<void> {
   try {
     await writeFileAtomically(
       updatePreferencesPath(),
-      Buffer.from(JSON.stringify({ declinedVersion: version }, null, 2), 'utf8'),
+      Buffer.from(JSON.stringify(preferences, null, 2), 'utf8'),
     );
   } catch (error) {
-    console.error('Unable to remember the declined update version', error);
+    console.error('Unable to save update preferences', error);
   }
+}
+
+function nextSuccessfulAutomaticCheck(): string {
+  return new Date(
+    Date.now()
+    + AUTOMATIC_UPDATE_INTERVAL_MS
+    + Math.floor(Math.random() * AUTOMATIC_UPDATE_JITTER_MS),
+  ).toISOString();
+}
+
+function nextFailedAutomaticCheck(failureCount: number, resetAt?: Date | null): string {
+  const exponentialDelay = Math.min(
+    15 * 60 * 1000 * (2 ** Math.max(0, failureCount - 1)),
+    AUTOMATIC_UPDATE_INTERVAL_MS,
+  );
+  const retryAt = Date.now() + exponentialDelay;
+  return new Date(Math.max(retryAt, resetAt?.getTime() ?? 0)).toISOString();
+}
+
+function automaticCheckDue(preferences: UpdatePreferences): boolean {
+  const nextCheck = Date.parse(preferences.nextAutomaticCheckAt ?? '');
+  return !Number.isFinite(nextCheck) || nextCheck <= Date.now();
+}
+
+async function fetchManifestUpdate(
+  preferences: UpdatePreferences,
+): Promise<{ candidate: UpdateCandidate | null; manifest: UpdateChannelManifest; etag?: string }> {
+  const headers: Record<string, string> = {
+    Accept: 'application/json',
+    'User-Agent': `Inkstill/${app.getVersion()}`,
+  };
+  if (preferences.manifestEtag) headers['If-None-Match'] = preferences.manifestEtag;
+
+  let response = await net.fetch(UPDATE_MANIFEST_URL, {
+    headers,
+    cache: 'no-cache',
+  });
+  if (response.status === 304) {
+    if (preferences.cachedManifest) {
+      return {
+        candidate: selectManifestUpdate(preferences.cachedManifest, app.getVersion()),
+        manifest: preferences.cachedManifest,
+        ...(preferences.manifestEtag ? { etag: preferences.manifestEtag } : {}),
+      };
+    }
+    response = await net.fetch(UPDATE_MANIFEST_URL, {
+      headers: {
+        Accept: 'application/json',
+        'User-Agent': `Inkstill/${app.getVersion()}`,
+      },
+      cache: 'reload',
+    });
+  }
+
+  const parsed = JSON.parse(await responseText(response, MAX_MANIFEST_RESPONSE_BYTES));
+  const manifest = parseUpdateChannelManifest(parsed);
+  if (!manifest) throw new Error('The update channel returned an invalid manifest.');
+  const etag = response.headers.get('etag') ?? undefined;
+  return {
+    candidate: selectManifestUpdate(manifest, app.getVersion()),
+    manifest,
+    ...(etag ? { etag } : {}),
+  };
+}
+
+async function fetchGitHubUpdate(): Promise<UpdateCandidate | null> {
+  const response = await net.fetch(RELEASES_API, {
+    headers: {
+      Accept: 'application/vnd.github+json',
+      'User-Agent': `Inkstill/${app.getVersion()}`,
+      'X-GitHub-Api-Version': '2022-11-28',
+    },
+  });
+  const releases = parsePublicReleases(JSON.parse(
+    await responseText(response, MAX_RELEASE_RESPONSE_BYTES),
+  ));
+  return selectUpdate(releases, app.getVersion());
 }
 
 async function updateDialog(options: Electron.MessageBoxOptions): Promise<Electron.MessageBoxReturnValue> {
@@ -519,17 +668,34 @@ async function checkForUpdates(manual: boolean): Promise<void> {
     return;
   }
 
+  let preferences = await readUpdatePreferences();
+  if (!manual && !automaticCheckDue(preferences)) return;
+
   updateCheckInFlight = true;
   try {
-    const response = await net.fetch(RELEASES_API, {
-      headers: {
-        Accept: 'application/vnd.github+json',
-        'User-Agent': `Inkstill/${app.getVersion()}`,
-        'X-GitHub-Api-Version': '2022-11-28',
-      },
-    });
-    const releases = parsePublicReleases(JSON.parse(await responseText(response, MAX_RELEASE_RESPONSE_BYTES)));
-    const candidate = selectUpdate(releases, app.getVersion());
+    let candidate: UpdateCandidate | null;
+    try {
+      const result = await fetchManifestUpdate(preferences);
+      candidate = result.candidate;
+      preferences = {
+        ...preferences,
+        cachedManifest: result.manifest,
+        ...(result.etag ? { manifestEtag: result.etag } : {}),
+      };
+    } catch (manifestError) {
+      if (!manual) throw manifestError;
+      console.warn('Static update channel unavailable; trying the GitHub API', manifestError);
+      candidate = await fetchGitHubUpdate();
+    }
+
+    preferences = {
+      ...preferences,
+      lastSuccessfulCheckAt: new Date().toISOString(),
+      nextAutomaticCheckAt: nextSuccessfulAutomaticCheck(),
+      failureCount: 0,
+    };
+    await writeUpdatePreferences(preferences);
+
     if (!candidate) {
       if (manual) {
         await updateDialog({
@@ -542,7 +708,7 @@ async function checkForUpdates(manual: boolean): Promise<void> {
       return;
     }
     // A declined version is only re-offered when the user checks manually.
-    if (!manual && (await readDeclinedUpdateVersion()) === candidate.version) return;
+    if (!manual && preferences.declinedVersion === candidate.version) return;
 
     const decision = await updateDialog({
       type: 'info',
@@ -559,7 +725,8 @@ async function checkForUpdates(manual: boolean): Promise<void> {
       return;
     }
     if (decision.response !== 0) {
-      await rememberDeclinedUpdateVersion(candidate.version);
+      preferences = { ...preferences, declinedVersion: candidate.version };
+      await writeUpdatePreferences(preferences);
       return;
     }
 
@@ -583,6 +750,16 @@ async function checkForUpdates(manual: boolean): Promise<void> {
   } catch (error) {
     mainWindow?.setProgressBar(-1);
     console.error('Update check failed', error);
+    const failureCount = Math.min((preferences.failureCount ?? 0) + 1, 8);
+    preferences = {
+      ...preferences,
+      failureCount,
+      nextAutomaticCheckAt: nextFailedAutomaticCheck(
+        failureCount,
+        error instanceof UpdateHttpError ? error.resetAt : null,
+      ),
+    };
+    await writeUpdatePreferences(preferences);
     if (manual) {
       await updateDialog({
         type: 'error',
@@ -1252,9 +1429,13 @@ if (!squirrelStartupHandled && hasSingleInstanceLock) void app.whenReady().then(
   await createMainWindow();
   void dispatchNextSystemOpen();
   if (app.isPackaged && process.platform === 'win32') {
-    const initialUpdateTimer = setTimeout(() => void checkForUpdates(false), 20_000);
+    const initialDelay = 20_000 + Math.floor(Math.random() * 60_000);
+    const initialUpdateTimer = setTimeout(() => void checkForUpdates(false), initialDelay);
     initialUpdateTimer.unref();
-    const recurringUpdateTimer = setInterval(() => void checkForUpdates(false), 6 * 60 * 60 * 1000);
+    const recurringUpdateTimer = setInterval(
+      () => void checkForUpdates(false),
+      AUTOMATIC_UPDATE_INTERVAL_MS,
+    );
     recurringUpdateTimer.unref();
   }
 

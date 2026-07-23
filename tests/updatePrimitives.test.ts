@@ -1,8 +1,13 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
 import { describe, expect, it } from 'vitest';
 
 import {
   checksumForAsset,
   compareVersions,
+  parseUpdateChannelManifest,
+  selectManifestUpdate,
   selectUpdate,
   type PublicRelease,
 } from '../src/main/updates/updatePrimitives';
@@ -31,6 +36,22 @@ function release(version: string, options?: { draft?: boolean; installer?: boole
 }
 
 describe('update primitives', () => {
+  const channelManifest = {
+    schemaVersion: 1,
+    product: 'Inkstill',
+    channel: 'preview',
+    version: '1.1.2',
+    releaseName: 'Inkstill 1.1.2 Preview',
+    releaseUrl: 'https://github.com/ScotteLiu/Inkstill/releases/tag/v1.1.2-preview.1',
+    publishedAt: '2026-07-23T14:22:10.000Z',
+    installer: {
+      name: 'Inkstill-1.1.2.Setup.exe',
+      url: 'https://github.com/ScotteLiu/Inkstill/releases/download/v1.1.2-preview.1/Inkstill-1.1.2.Setup.exe',
+      size: 141_933_568,
+      sha256: 'a'.repeat(64),
+    },
+  };
+
   it('compares release versions numerically', () => {
     expect(compareVersions('1.10.0', '1.9.9')).toBeGreaterThan(0);
     expect(compareVersions('1.1.1', '1.1.1')).toBe(0);
@@ -93,5 +114,46 @@ describe('update primitives', () => {
     newer.html_url = 'https://github.com/ScotteLiu/Inkstill/releases/tag/v1.2.0-preview.2';
     expect(selectUpdate([older], '1.2.0-preview.1')).toBeNull();
     expect(selectUpdate([older, newer], '1.2.0-preview.1')?.releaseUrl).toBe(newer.html_url);
+  });
+
+  it('selects a newer update from the static preview channel', () => {
+    const candidate = selectManifestUpdate(channelManifest, '1.1.1');
+    expect(candidate?.version).toBe('1.1.2');
+    expect(candidate?.expectedSha256).toBe('a'.repeat(64));
+    expect(candidate?.installer.size).toBe(141_933_568);
+    expect(selectManifestUpdate(channelManifest, '1.1.2')).toBeNull();
+  });
+
+  it('rejects forged or malformed static update manifests', () => {
+    expect(parseUpdateChannelManifest({
+      ...channelManifest,
+      installer: {
+        ...channelManifest.installer,
+        url: 'https://example.com/Inkstill-1.1.2.Setup.exe',
+      },
+    })).toBeNull();
+    expect(parseUpdateChannelManifest({
+      ...channelManifest,
+      installer: {
+        ...channelManifest.installer,
+        sha256: 'not-a-checksum',
+      },
+    })).toBeNull();
+    expect(parseUpdateChannelManifest({
+      ...channelManifest,
+      product: 'Other',
+    })).toBeNull();
+    expect(parseUpdateChannelManifest({
+      ...channelManifest,
+      version: '1.1.3',
+    })).toBeNull();
+  });
+
+  it('keeps the published Pages update manifest valid', () => {
+    const published = JSON.parse(readFileSync(
+      resolve(process.cwd(), 'site', 'updates', 'windows-preview.json'),
+      'utf8',
+    ));
+    expect(parseUpdateChannelManifest(published)?.version).toBe('1.1.2');
   });
 });

@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "product": "Inkstill",
+  "channel": "preview",
+  "version": "1.1.2",
+  "releaseName": "Inkstill 1.1.2 Preview",
+  "releaseUrl": "https://github.com/ScotteLiu/Inkstill/releases/tag/v1.1.2-preview.1",
+  "publishedAt": "2026-07-23T14:22:10.000Z",
+  "installer": {
+    "name": "Inkstill-1.1.2.Setup.exe",
+    "url": "https://github.com/ScotteLiu/Inkstill/releases/download/v1.1.2-preview.1/Inkstill-1.1.2.Setup.exe",
+    "size": 141933568,
+    "sha256": "323a0270baa267729cce01ef64cc6bbe4f8d7e1ef10f21338783291f3457acdf"
+  }
+}

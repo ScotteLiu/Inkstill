@@ -12,6 +12,23 @@ This performs the complete clean, frozen, single-build verification pipeline. Th
 
 The candidate gate does not require a signature and is not, by itself, eligibility for public distribution. Evidence records the actual signature state. Build inputs are SHA-256 traceable; bit-for-bit reproducibility is not claimed.
 
+## Preview update channel
+
+Installed Windows builds read the fixed GitHub Pages endpoint
+`https://scotteliu.github.io/Inkstill/updates/windows-preview.json`. The
+manifest is intentionally small, contains no user or device identifier, and
+pins the installer URL, byte length, and SHA-256 digest.
+
+For a tagged preview, the Windows workflow generates the manifest from the
+verified installer, attaches it to the Release, updates
+`site/updates/windows-preview.json` on `main`, and dispatches the Pages
+deployment only after every Release asset exists. Do not advertise a new
+version by editing the manifest before its installer is published.
+
+Clients cache the manifest with its ETag, add randomized startup delay, limit
+automatic checks to once per six hours, and back off after failures. The
+rate-limited GitHub Releases API is used only as a manual-check fallback.
+
 ## Public release
 
 ```powershell

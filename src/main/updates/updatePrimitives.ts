@@ -18,7 +18,24 @@ export interface UpdateCandidate {
   releaseName: string;
   releaseUrl: string;
   installer: ReleaseAsset;
-  checksums: ReleaseAsset;
+  checksums?: ReleaseAsset;
+  expectedSha256?: string;
+}
+
+export interface UpdateChannelManifest {
+  schemaVersion: 1;
+  product: 'Inkstill';
+  channel: 'preview';
+  version: string;
+  releaseName: string;
+  releaseUrl: string;
+  publishedAt: string;
+  installer: {
+    name: string;
+    url: string;
+    size: number;
+    sha256: string;
+  };
 }
 
 const VERSION_PATTERN = /^v?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+.*)?$/i;
@@ -96,6 +113,99 @@ function safeGitHubReleaseUrl(value: string): boolean {
   } catch {
     return false;
   }
+}
+
+function validPublishedAt(value: string): boolean {
+  return Number.isFinite(Date.parse(value));
+}
+
+export function parseUpdateChannelManifest(value: unknown): UpdateChannelManifest | null {
+  if (!value || typeof value !== 'object') return null;
+  const manifest = value as Record<string, unknown>;
+  const installer = manifest.installer;
+  if (
+    manifest.schemaVersion !== 1
+    || manifest.product !== 'Inkstill'
+    || manifest.channel !== 'preview'
+    || typeof manifest.version !== 'string'
+    || !parseVersion(manifest.version)
+    || typeof manifest.releaseName !== 'string'
+    || manifest.releaseName.trim().length === 0
+    || typeof manifest.releaseUrl !== 'string'
+    || !safeGitHubReleaseUrl(manifest.releaseUrl)
+    || typeof manifest.publishedAt !== 'string'
+    || !validPublishedAt(manifest.publishedAt)
+    || !installer
+    || typeof installer !== 'object'
+  ) return null;
+
+  const artifact = installer as Record<string, unknown>;
+  const releaseAsset: ReleaseAsset = {
+    name: typeof artifact.name === 'string' ? artifact.name : '',
+    browser_download_url: typeof artifact.url === 'string' ? artifact.url : '',
+    size: typeof artifact.size === 'number' ? artifact.size : 0,
+  };
+  const installerMatch = /^Inkstill-([\d.]+)(?:[ ._-])Setup\.exe$/i.exec(releaseAsset.name);
+  let releaseTag = '';
+  let downloadTag = '';
+  let downloadName = '';
+  try {
+    const releaseUrl = new URL(manifest.releaseUrl);
+    const downloadUrl = new URL(releaseAsset.browser_download_url);
+    releaseTag = releaseUrl.pathname.split('/releases/tag/')[1] ?? '';
+    const downloadPath = downloadUrl.pathname.split('/releases/download/')[1] ?? '';
+    [downloadTag, downloadName] = downloadPath.split('/');
+    downloadName = decodeURIComponent(downloadName ?? '');
+  } catch {
+    return null;
+  }
+  if (
+    !installerMatch
+    || installerMatch[1] !== manifest.version
+    || !/^\d+\.\d+\.\d+$/.test(manifest.version)
+    || !safeGitHubDownload(releaseAsset)
+    || !releaseTag
+    || releaseTag !== downloadTag
+    || parseVersion(releaseTag)?.join('.') !== manifest.version
+    || downloadName !== releaseAsset.name
+    || typeof artifact.sha256 !== 'string'
+    || !/^[a-f\d]{64}$/i.test(artifact.sha256)
+  ) return null;
+
+  return {
+    schemaVersion: 1,
+    product: 'Inkstill',
+    channel: 'preview',
+    version: manifest.version,
+    releaseName: manifest.releaseName,
+    releaseUrl: manifest.releaseUrl,
+    publishedAt: manifest.publishedAt,
+    installer: {
+      name: releaseAsset.name,
+      url: releaseAsset.browser_download_url,
+      size: releaseAsset.size,
+      sha256: artifact.sha256.toLocaleLowerCase('en-US'),
+    },
+  };
+}
+
+export function selectManifestUpdate(
+  value: unknown,
+  currentVersion: string,
+): UpdateCandidate | null {
+  const manifest = parseUpdateChannelManifest(value);
+  if (!manifest || compareVersions(manifest.version, currentVersion) <= 0) return null;
+  return {
+    version: manifest.version,
+    releaseName: manifest.releaseName,
+    releaseUrl: manifest.releaseUrl,
+    installer: {
+      name: manifest.installer.name,
+      browser_download_url: manifest.installer.url,
+      size: manifest.installer.size,
+    },
+    expectedSha256: manifest.installer.sha256,
+  };
 }
 
 export function selectUpdate(
