@@ -140,6 +140,6 @@ Inkstill 使用 [MIT License](LICENSE) 开源。
 Copyright © 2026 Scotte Liu.
 
 - **Scotte Liu**：创作者、著作权人及主要开发者
-- **OpenAI Codex**：AI 开发贡献者
+- **[OpenAI Codex](https://github.com/codex)**：AI 开发贡献者
 
 具体贡献内容请查看完整的[贡献者名单](CONTRIBUTORS.md)。

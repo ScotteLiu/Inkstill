@@ -144,6 +144,6 @@ Inkstill is open source under the [MIT License](LICENSE).
 Copyright © 2026 Scotte Liu.
 
 - **Scotte Liu** — Creator, copyright holder, and lead developer
-- **OpenAI Codex** — AI development contributor
+- **[OpenAI Codex](https://github.com/codex)** — AI development contributor
 
 See the full [contributors list](CONTRIBUTORS.md) for contribution details.
