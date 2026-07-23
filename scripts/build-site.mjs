@@ -65,6 +65,19 @@ for (const file of localizedPages) {
   if (!content.includes('class="language-menu"')) {
     throw new Error(`${file} is missing the language menu`);
   }
+  if ((content.match(/<section(?:\s|>)/g) ?? []).length !== 6) {
+    throw new Error(`${file} does not contain the complete six-section landing page`);
+  }
+  if ((content.match(/aria-current="page"/g) ?? []).length !== 1) {
+    throw new Error(`${file} must identify exactly one current language`);
+  }
+  if ((content.match(/property="og:locale:alternate"/g) ?? []).length !== 7) {
+    throw new Error(`${file} is missing Open Graph locale alternates`);
+  }
+  if (!content.includes('property="og:image:width" content="1280"')
+    || !content.includes('property="og:image:height" content="640"')) {
+    throw new Error(`${file} is missing social image dimensions`);
+  }
 }
 
 const updateManifest = JSON.parse(
