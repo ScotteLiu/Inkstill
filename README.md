@@ -12,9 +12,15 @@
 </p>
 
 <p align="center">
-  <a href="README.md">English</a> · <a href="README.zh-CN.md">简体中文</a> ·
+  <sub>LANGUAGE</sub><br>
+  <a href="README.md"><strong>English</strong></a> ·
+  <a href="README.zh-CN.md">简体中文</a> ·
   <a href="https://scotteliu.github.io/Inkstill/zh-tw.html">繁體中文</a> ·
-  <a href="https://scotteliu.github.io/Inkstill/">Multilingual website</a>
+  <a href="https://scotteliu.github.io/Inkstill/es.html">Español</a><br>
+  <a href="https://scotteliu.github.io/Inkstill/pt-br.html">Português</a> ·
+  <a href="https://scotteliu.github.io/Inkstill/hi.html">हिन्दी</a> ·
+  <a href="https://scotteliu.github.io/Inkstill/ru.html">Русский</a> ·
+  <a href="https://scotteliu.github.io/Inkstill/de.html">Deutsch</a>
 </p>
 
 <p align="center">
