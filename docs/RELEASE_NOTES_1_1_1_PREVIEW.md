@@ -12,6 +12,17 @@ This preview fixes Windows file opening and expands technical-document rendering
 - Renders `$…$`, `$$…$$`, `\(…\)`, `\[…\]`, and standalone bracketed LaTeX equations.
 - Refines the status bar for clearer document statistics at normal and high zoom.
 - Adds a privacy-preserving GitHub Release update checker with SHA-256 verification.
+- Keeps `$`, `~`, `^`, `==`, `[[…]]`, footnote, and emoji sequences literal inside code
+  blocks and inline code instead of rendering them as formulas or formatting.
+- Keeps rendered Mermaid diagrams and local images visible; they previously disappeared
+  moments after rendering.
+- Fixes the workspace layout so the status bar stays at the bottom of the window and
+  never overlaps document text.
+- Makes the in-editor search panel readable in dark mode and improves dark-mode code
+  highlighting contrast.
+- Repairs documents automatically after a crash during the final step of a save.
+- Recognizes `.mdown` and `.mkd` files in **Open with**, finds backlink mentions for
+  Chinese note names, and remembers a declined update instead of asking again.
 
 ### Updating
 
@@ -33,6 +44,14 @@ These preview binaries are not yet Authenticode-signed, so Windows may display a
 - 支持 `$…$`、`$$…$$`、`\(…\)`、`\[…\]` 和独立方括号 LaTeX 公式。
 - 重新设计底部状态栏，在普通缩放和高倍缩放下更清晰。
 - 加入保护隐私的 GitHub Release 更新检查，并在安装前验证 SHA-256。
+- 代码块与行内代码中的 `$`、`~`、`^`、`==`、`[[…]]`、脚注和 emoji 字符保持原样，
+  不再被误渲染为公式或格式。
+- 修复 Mermaid 图和本地图片渲染后随即消失的问题。
+- 修复工作区布局：状态栏固定在窗口底部，不再与正文重叠。
+- 暗色模式下的搜索面板恢复可读，代码高亮对比度更好。
+- 保存的最后一步遭遇崩溃后，文档可自动修复。
+- “打开方式”支持 `.mdown` 与 `.mkd`，中文笔记名可被反向链接提及识别，
+  拒绝过的更新不再重复提醒。
 
 ### 更新方式
 

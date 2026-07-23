@@ -361,7 +361,16 @@ await Promise.all([
   }, null, 2)}\n`, 'utf8'),
   writeFile(
     join(releaseFolder, 'SHA256SUMS.txt'),
-    `${hashes.map((item) => `${item.sha256}  ${item.path}`).join('\n')}\n`,
+    `${[
+      ...hashes.map((item) => `${item.sha256}  ${item.path}`),
+      // Also list uploaded maker artifacts by bare file name: release assets
+      // are downloaded flat, and installed clients (including 1.1.x previews
+      // with a strict full-string match) verify the installer against the
+      // asset name alone.
+      ...hashes
+        .filter((item) => item.path.startsWith('out/make/'))
+        .map((item) => `${item.sha256}  ${item.path.split('/').at(-1)}`),
+    ].join('\n')}\n`,
     'utf8',
   ),
 ]);
