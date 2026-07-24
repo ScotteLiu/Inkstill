@@ -2,7 +2,9 @@ import { writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 const base = 'https://scotteliu.github.io/Inkstill/';
-const release = 'https://github.com/ScotteLiu/Inkstill/releases/download/v1.1.2-preview.1/';
+const version = '1.1.3';
+const tag = `v${version}-preview.1`;
+const release = `https://github.com/ScotteLiu/Inkstill/releases/download/${tag}/`;
 const repository = 'https://github.com/ScotteLiu/Inkstill';
 const languages = [
   ['en', '', 'English'],
@@ -134,14 +136,14 @@ function render(locale) {
 <link rel="canonical" href="${base}${locale.file}">${alternates}<link rel="alternate" hreflang="x-default" href="${base}">
 <link rel="icon" href="assets/icon.png"><link rel="stylesheet" href="styles.css">
 <meta property="og:type" content="website"><meta property="og:site_name" content="Inkstill"><meta property="og:title" content="${locale.title}"><meta property="og:description" content="${locale.description}"><meta property="og:url" content="${base}${locale.file}"><meta property="og:locale" content="${locale.locale}">${ogAlternates}<meta property="og:image" content="${base}assets/inkstill-social-preview.png"><meta property="og:image:alt" content="${locale.title}"><meta property="og:image:width" content="1280"><meta property="og:image:height" content="640"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${locale.title}"><meta name="twitter:description" content="${locale.description}"><meta name="twitter:image" content="${base}assets/inkstill-social-preview.png">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Inkstill","applicationCategory":"UtilitiesApplication","operatingSystem":"Windows 10, Windows 11, macOS, Linux","softwareVersion":"1.1.2","description":${JSON.stringify(locale.description)},"url":"${base}${locale.file}","downloadUrl":"${release}Inkstill-1.1.2.Setup.exe","license":"https://opensource.org/license/mit","author":{"@type":"Person","name":"Scotte Liu"},"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script></head>
-<body><a class="skip-link" href="#main-content">${locale.skip}</a><header class="site-header"><nav class="nav container" aria-label="${locale.nav}"><a class="brand" href="./"><img src="assets/icon.png" alt=""><span>Inkstill</span></a><div class="nav-links"><a href="#features">${locale.nav}</a><a href="${repository}">GitHub</a><a href="${repository}/releases/tag/v1.1.2-preview.1">${locale.download}</a><details class="language-menu"><summary aria-label="${locale.choose}">${locale.current}</summary><div class="language-options">${menu(locale.current)}</div></details></div></nav></header>
-<main id="main-content"><section class="hero"><div class="container"><p class="eyebrow">${locale.eyebrow}</p><h1>${locale.heading}</h1><p class="hero-copy">${locale.intro}</p><div class="actions"><a class="button primary" href="${release}Inkstill-1.1.2.Setup.exe">${locale.installer}</a><a class="button" href="${release}Inkstill-win32-x64-1.1.2.zip">${locale.portable}</a><a class="button" href="${repository}">${locale.source}</a></div><p class="preview-note">${locale.note}</p><div class="product-frame"><img src="assets/inkstill-split-preview.png" alt="Inkstill Markdown editor" width="1240" height="820" fetchpriority="high" decoding="async"></div></div></section>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Inkstill","applicationCategory":"UtilitiesApplication","operatingSystem":"Windows 10, Windows 11, macOS, Linux","softwareVersion":"${version}","description":${JSON.stringify(locale.description)},"url":"${base}${locale.file}","downloadUrl":"${release}Inkstill-${version}.Setup.exe","license":"https://opensource.org/license/mit","author":{"@type":"Person","name":"Scotte Liu"},"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script></head>
+<body><a class="skip-link" href="#main-content">${locale.skip}</a><header class="site-header"><nav class="nav container" aria-label="${locale.nav}"><a class="brand" href="./"><img src="assets/icon.png" alt=""><span>Inkstill</span></a><div class="nav-links"><a href="#features">${locale.nav}</a><a href="${repository}">GitHub</a><a href="${repository}/releases/tag/${tag}">${locale.download}</a><details class="language-menu"><summary aria-label="${locale.choose}">${locale.current}</summary><div class="language-options">${menu(locale.current)}</div></details></div></nav></header>
+<main id="main-content"><section class="hero"><div class="container"><p class="eyebrow">${locale.eyebrow}</p><h1>${locale.heading}</h1><p class="hero-copy">${locale.intro}</p><div class="actions"><a class="button primary" href="${release}Inkstill-${version}.Setup.exe">${locale.installer}</a><a class="button" href="${release}Inkstill-win32-x64-${version}.zip">${locale.portable}</a><a class="button" href="${repository}">${locale.source}</a></div><p class="preview-note">${locale.note}</p><div class="product-frame"><img src="assets/inkstill-split-preview.png" alt="Inkstill Markdown editor" width="1240" height="820" fetchpriority="high" decoding="async"></div></div></section>
 <section id="features"><div class="container"><div class="section-heading center"><p class="eyebrow">${locale.section}</p><h2>${locale.sectionTitle}</h2></div><div class="benefit-grid">${cards}</div></div></section>
 <section><div class="container showcase"><div class="showcase-image"><img src="assets/inkstill-command-palette.png" alt="Inkstill command palette" loading="lazy" decoding="async" width="1240" height="820"></div><div class="showcase-copy"><p class="eyebrow">${locale.workspaceEyebrow}</p><h2>${locale.workspaceTitle}</h2><p>${locale.workspaceText}</p><ul class="feature-list">${workspaceItems}</ul></div></div></section>
 <section><div class="container showcase reverse"><div class="showcase-copy"><p class="eyebrow">${locale.markdownEyebrow}</p><h2>${locale.markdownTitle}</h2><p>${locale.markdownText}</p><ul class="feature-list">${markdownItems}</ul></div><div class="showcase-image"><img src="assets/inkstill-writing-tools.png" alt="Inkstill writing tools" loading="lazy" decoding="async" width="1240" height="820"></div></div></section>
 <section class="quiet-section"><div class="container quiet-grid"><h2>${locale.quietTitle}</h2><div class="quiet-copy"><p>${locale.quietText}</p><div class="facts">${facts}</div></div></div></section>
-<section class="final-cta"><div class="container"><div class="final-panel"><h2>${locale.cta}</h2><p>${locale.ctaText}</p><a class="button" href="${release}Inkstill-1.1.2.Setup.exe">${locale.installer}</a></div></div></section></main>
+<section class="final-cta"><div class="container"><div class="final-panel"><h2>${locale.cta}</h2><p>${locale.ctaText}</p><a class="button" href="${release}Inkstill-${version}.Setup.exe">${locale.installer}</a></div></div></section></main>
 <footer><div class="container footer-inner"><span>Copyright © 2026 Scotte Liu. ${locale.copyright}</span><div class="footer-links"><a href="${repository}">${locale.source}</a><a href="${repository}/issues">${locale.issues}</a></div></div></footer></body></html>`;
 }
 
@@ -153,7 +155,7 @@ export async function writeLocalizedSitemap(output) {
   const alternateLinks = languages.map(([code, file]) => `    <xhtml:link rel="alternate" hreflang="${code}" href="${base}${file}"/>`).join('\n');
   const urls = languages.map(([, file], index) => `  <url>
     <loc>${base}${file}</loc>
-    <lastmod>2026-07-23</lastmod>
+    <lastmod>2026-07-24</lastmod>
     <changefreq>monthly</changefreq>
     <priority>${index === 0 ? '1.0' : '0.9'}</priority>
 ${alternateLinks}
