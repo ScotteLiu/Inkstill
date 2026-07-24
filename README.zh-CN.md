@@ -140,6 +140,7 @@ Inkstill 使用 [MIT License](LICENSE) 开源。
 Copyright © 2026 Scotte Liu.
 
 - **Scotte Liu**：创作者、著作权人及主要开发者
+- **[Tweety-hub](https://github.com/Tweety-hub)**：项目共同维护者及主要贡献者
 - **[OpenAI Codex](https://github.com/codex)**：主要 AI 开发贡献者
 - **Anthropic Claude**：补充 AI 审查贡献者
 
