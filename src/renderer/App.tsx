@@ -504,6 +504,21 @@ export default function App(): React.JSX.Element {
         commandHandlerRef.current('cheat-sheet');
         return;
       }
+      if (modifier && !event.altKey) {
+        const zoomDirection = event.key === '+' || event.key === '=' || event.code === 'NumpadAdd'
+          ? 1
+          : event.key === '-' || event.code === 'NumpadSubtract'
+            ? -1
+            : event.key === '0' || event.code === 'Numpad0'
+              ? 0
+              : null;
+        if (zoomDirection !== null) {
+          event.preventDefault();
+          event.stopPropagation();
+          void window.desktop.changeZoom(zoomDirection);
+          return;
+        }
+      }
       if (!modifier || event.altKey || overlaysOpen) return;
       const command = event.shiftKey
         ? ({ o: 'open-workspace', s: 'save-as', f: 'find-workspace', e: 'export-pdf' } as const)[key]

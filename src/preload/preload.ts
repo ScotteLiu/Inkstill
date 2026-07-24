@@ -32,11 +32,15 @@ import {
   workspaceSearchRequestSchema,
   workspaceSearchResultSchema,
   workspaceSnapshotSchema,
+  zoomDirectionSchema,
   type DesktopApi,
 } from '../shared/contracts';
 
 const api: DesktopApi = {
   platform: desktopPlatformSchema.parse(process.platform),
+  async changeZoom(direction) {
+    await ipcRenderer.invoke(IPC.changeZoom, zoomDirectionSchema.parse(direction));
+  },
   async createDocument(request) {
     const result = await ipcRenderer.invoke(
       IPC.createDocument,

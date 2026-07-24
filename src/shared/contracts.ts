@@ -22,6 +22,7 @@ export const IPC = {
   restoreRecovery: 'recovery:restore',
   discardRecovery: 'recovery:discard',
   menuCommand: 'app:menu-command',
+  changeZoom: 'app:change-zoom',
   rendererReady: 'app:renderer-ready',
   systemOpenDocument: 'app:system-open-document',
   systemOpenHandled: 'app:system-open-handled',
@@ -65,6 +66,9 @@ export const menuCommandSchema = z.enum([
   'flush-recovery-and-close',
 ]);
 export type MenuCommand = z.infer<typeof menuCommandSchema>;
+
+export const zoomDirectionSchema = z.union([z.literal(-1), z.literal(0), z.literal(1)]);
+export type ZoomDirection = z.infer<typeof zoomDirectionSchema>;
 
 export const openExternalRequestSchema = z.object({
   url: z.string().url().max(4096),
@@ -291,6 +295,7 @@ export type DesktopPlatform = z.infer<typeof desktopPlatformSchema>;
 
 export interface DesktopApi {
   readonly platform: DesktopPlatform;
+  changeZoom(direction: ZoomDirection): Promise<void>;
   createDocument(request: CreateDocumentRequest): Promise<DocumentSnapshot>;
   openDocument(): Promise<DocumentSnapshot | null>;
   closeDocument(request: DocumentIdRequest): Promise<void>;

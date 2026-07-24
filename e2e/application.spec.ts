@@ -115,20 +115,16 @@ test('launches a sandboxed editor and keeps Markdown editable', async () => {
       expect(updateMenuAvailable).toBe(true);
     }
 
-    await electronApp.evaluate(({ Menu }) => {
-      const zoomIn = Menu.getApplicationMenu()?.items
-        .find((item) => item.label === 'View')
-        ?.submenu?.items.find((item) => item.label === 'Zoom In');
-      (zoomIn as unknown as { click: () => void }).click();
-    });
+    await page.keyboard.press(`${primaryModifier}+=`);
     await expect.poll(() => electronApp.evaluate(({ BrowserWindow }) =>
       BrowserWindow.getAllWindows()[0].webContents.getZoomFactor())).toBeGreaterThan(1);
-    await electronApp.evaluate(({ Menu }) => {
-      const actualSize = Menu.getApplicationMenu()?.items
-        .find((item) => item.label === 'View')
-        ?.submenu?.items.find((item) => item.label === 'Actual Size');
-      (actualSize as unknown as { click: () => void }).click();
-    });
+    await page.keyboard.press(`${primaryModifier}+0`);
+    await expect.poll(() => electronApp.evaluate(({ BrowserWindow }) =>
+      BrowserWindow.getAllWindows()[0].webContents.getZoomFactor())).toBe(1);
+    await page.keyboard.press(`${primaryModifier}+Shift+=`);
+    await expect.poll(() => electronApp.evaluate(({ BrowserWindow }) =>
+      BrowserWindow.getAllWindows()[0].webContents.getZoomFactor())).toBeGreaterThan(1);
+    await page.keyboard.press(`${primaryModifier}+0`);
     await expect.poll(() => electronApp.evaluate(({ BrowserWindow }) =>
       BrowserWindow.getAllWindows()[0].webContents.getZoomFactor())).toBe(1);
 
@@ -216,6 +212,7 @@ test('launches a sandboxed editor and keeps Markdown editable', async () => {
     expect(rendererGlobals.nodeProcess).toBe('undefined');
     expect(rendererGlobals.desktopMethods).toEqual([
       'acknowledgeSystemOpen',
+      'changeZoom',
       'closeDocument',
       'completeDiscardClose',
       'confirmUnsavedChanges',

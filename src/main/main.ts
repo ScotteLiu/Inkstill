@@ -40,6 +40,7 @@ import {
   workspaceMentionsRequestSchema,
   workspacePathRequestSchema,
   workspaceSearchRequestSchema,
+  zoomDirectionSchema,
   type ExternalChangeEvent,
   type MenuCommand,
   type SaveResult,
@@ -949,6 +950,10 @@ function registerIpc(): void {
     mainWindow?.close();
   };
 
+  ipcMain.handle(IPC.changeZoom, (event, raw) => {
+    assertExpectedRenderer(event);
+    changeApplicationZoom(zoomDirectionSchema.parse(raw));
+  });
   ipcMain.handle(IPC.createDocument, (event, raw) => {
     assertExpectedRenderer(event);
     return service.createDocument(createDocumentRequestSchema.parse(raw));
